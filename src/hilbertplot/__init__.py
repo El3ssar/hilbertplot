@@ -51,7 +51,7 @@ from ._core.curve import (
 from ._viz.hilbert_plot import hilbert_plot
 from ._viz.render import gallery
 
-__version__ = "0.1.0"
+__version__ = "0.0.0"
 
 __all__ = [
     "__version__",
