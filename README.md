@@ -23,22 +23,25 @@ the recipe it uses.
 
 ## Install
 
-Not on PyPI yet — install from source:
+```bash
+pip install hilbertplot            # core (numpy only)
+pip install "hilbertplot[plot]"    # + matplotlib for the plotting / visualisation features
+```
+
+or, with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-git clone https://github.com/El3ssar/hilbertplot
-cd hilbertplot
-uv pip install ".[plot]"        # core (numpy) + matplotlib for plotting
+uv add "hilbertplot[plot]"
 ```
 
 Development (editable, with tests):
 
 ```bash
+git clone https://github.com/El3ssar/hilbertplot
+cd hilbertplot
 uv venv && uv pip install -e ".[dev]"
 uv run pytest
 ```
-
-Once published, install will be `uv pip install "hilbertplot[plot]"`.
 
 ## Curves — you think "curve *i* of order *j*"
 

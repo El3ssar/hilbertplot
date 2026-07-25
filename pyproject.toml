@@ -9,7 +9,7 @@ description = "The complete set of 40 two-dimensional Hilbert curves, and data p
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "El3ssar", email = "kemossabee@gmail.com" }]
+authors = [{ name = "Daniel Estevez", email = "kemossabee@gmail.com" }]
 keywords = [
     "hilbert-curve",
     "space-filling-curve",
@@ -31,7 +31,7 @@ dependencies = ["numpy>=1.21"]
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.5"]
-dev = ["matplotlib>=3.5", "pytest>=7.0"]
+dev = ["matplotlib>=3.5", "pytest>=7.0", "ruff==0.15.13"]
 
 [project.urls]
 Homepage = "https://github.com/El3ssar/hilbertplot"
@@ -54,3 +54,54 @@ include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+# extend-exclude ADDS to Ruff's defaults (.git, __pycache__, build/, dist/, ...);
+# do not use `exclude` here or those built-in ignores would be lost.
+extend-exclude = ["research/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# intentional compact hot-loop: allow one-line compound statements
+"src/hilbertplot/_core/arbitrary.py" = ["E701", "E702"]
+# the paper's parameter name `l` (ambiguous-variable-name)
+"src/hilbertplot/_data/mapping.py" = ["E741"]
+
+[tool.ruff.format]
+# arbitrary.py's `_fill` is a deliberately dense, hand-tuned hot loop; keep it
+# linted (with E701/E702 ignored above) but exempt from the formatter so its
+# compact one-liners survive.
+exclude = ["src/hilbertplot/_core/arbitrary.py"]
+
+[tool.semantic_release]
+# pyproject keeps a STATIC version = "0.1.0"; PSR stamps BOTH files in sync on
+# every release so the two never drift.
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["src/hilbertplot/__init__.py:__version__"]
+tag_format = "v{version}"
+# Stay on 0.x: without this, PSR (v10 default = false) forces the first release
+# to 1.0.0. With it, a feat on 0.0.0 -> 0.1.0, and breaking changes still cut 1.0.0.
+allow_zero_version = true
+major_on_zero = true
+commit_parser = "conventional"
+# uv-based build (produces sdist + wheel). In CI this runs only for local
+# `semantic-release version` invocations; the GitHub Action sets build:false and
+# the publish job rebuilds from the tag, because the action's container has no uv.
+build_command = "uv build"
+
+[tool.semantic_release.branches.main]
+match = "(main|master)"
+prerelease = false
+prerelease_token = "rc"
+
+[tool.semantic_release.changelog]
+mode = "update"                          # insert at the marker (v10 default)
+insertion_flag = "<!-- version list -->" # MUST exist in CHANGELOG.md for update mode
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+output_format = "md"
+mask_initial_release = true

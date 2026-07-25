@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+# Least privilege: CI only reads the repo. It never publishes anything.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Install project with dev extras
+        # No --frozen: a library is best tested against currently-resolvable
+        # deps, and this can never go red from uv.lock's own version lagging a
+        # release. The lock stays committed for reproducible local dev.
+        run: uv sync --extra dev
+
+      - name: Run test suite
+        run: uv run pytest
+
+      - name: Run doctests
+        run: uv run pytest --doctest-modules src/hilbertplot
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install project with dev extras
+        # ruff is a pinned dev dependency, so lint runs the exact same version
+        # locally, in CI, and for Dependabot bumps.
+        run: uv sync --extra dev
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .

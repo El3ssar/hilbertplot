@@ -4,6 +4,11 @@ All notable changes to **hilbertplot** are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to adhere to
 [Semantic Versioning](https://semver.org/).
 
+Released versions below are generated automatically by python-semantic-release;
+new entries are inserted at the marker.
+
+<!-- version list -->
+
 ## [Unreleased]
 
 ### Added

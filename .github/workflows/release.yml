@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Least privilege by default; each job elevates only what it needs.
+permissions:
+  contents: read
+
+# Serialize releases so two pushes to main can never race on the tag/commit.
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Semantic release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the release commit + tag and create the GitHub Release
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0 # full history so PSR can compute deltas from the last tag
+
+      - name: Pin working tree to the triggering commit
+        # Avoid releasing commits pushed to main after this run started.
+        run: git reset --hard ${{ github.sha }}
+
+      - name: Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v10.6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: "github-actions[bot]"
+          git_committer_email: "github-actions[bot]@users.noreply.github.com"
+          # The action runs inside a Docker container that does NOT ship uv, so
+          # the uv-based build_command cannot run here. Building is delegated to
+          # the publish job below, which rebuilds from the freshly created tag.
+          build: false
+      # NOTE: the commit + tag are pushed with GITHUB_TOKEN. GitHub's platform
+      # rule means that push does NOT trigger another Release run, so there is
+      # no infinite loop.
+
+  publish:
+    name: Publish to PyPI
+    needs: release
+    # Only publish when PSR actually cut a new version (output is a STRING).
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi # MUST match the environment registered on the PyPI publisher
+      url: https://pypi.org/p/hilbertplot
+    permissions:
+      contents: read
+      id-token: write # MANDATORY for PyPI Trusted Publishing (OIDC); no token used
+    steps:
+      - name: Checkout the released tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build sdist + wheel
+        run: uv build # writes dist/*.tar.gz and dist/*.whl
+
+      - name: Publish to PyPI via OIDC
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No username/password/token: Trusted Publishing authenticates via OIDC.
+        # The action uploads everything in dist/ by default.

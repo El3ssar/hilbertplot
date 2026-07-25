@@ -1,0 +1,50 @@
+name: Lint PR title
+
+# Because PRs are squash-merged, GitHub proposes the PR title as the squash
+# commit subject. Validating the title here keeps the commit that lands on main
+# Conventional-Commit compliant, which is what python-semantic-release parses.
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+
+permissions:
+  pull-requests: write # post / update the validation status check and comment
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Conventional Commit types PSR understands (feat -> minor, fix -> patch,
+          # feat!/BREAKING CHANGE -> major; the rest are no-release types).
+          types: |
+            feat
+            fix
+            docs
+            chore
+            refactor
+            perf
+            test
+            build
+            ci
+            style
+            revert
+          # Scope is optional: "feat: ..." and "feat(core): ..." are both valid.
+          requireScope: false
+          # Forbid a subject that starts with an uppercase character.
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            didn't match the configured pattern. Please ensure that the subject
+            doesn't start with an uppercase character.
