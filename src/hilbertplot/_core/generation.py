@@ -23,9 +23,10 @@ from functools import cache
 import numpy as np
 
 from .catalog import spec_by_index
+from .limits import check_cells
 from .symmetry import DIRECTIONS, MORPHISMS, ROT180
 
-__all__ = ["curve_codes", "curve_word", "word_length", "clear_cache"]
+__all__ = ["cache_info", "check_order", "clear_cache", "curve_codes", "curve_word", "word_length"]
 
 # Stroke codes follow the canonical direction order: u=0, d=1, l=2, r=3.
 _CODE = {letter: i for i, letter in enumerate(DIRECTIONS)}
@@ -59,6 +60,11 @@ def word_length(order: int) -> int:
     return 4**order - 1
 
 
+def cache_info():
+    """Return the memo statistics for generated curves (a ``functools`` ``CacheInfo``)."""
+    return _codes.cache_info()
+
+
 @cache
 def _codes(index: int, order: int) -> np.ndarray:
     if order == 0:
@@ -77,15 +83,28 @@ def _codes(index: int, order: int) -> np.ndarray:
     return out
 
 
+def check_order(order: int, *, bytes_per_cell: int = 16) -> int:
+    """Return ``order`` if it is a usable recursion depth, else raise.
+
+    Rejects non-integers (including ``bool``), negatives, and depths whose curve could not
+    be held in memory -- see :mod:`hilbertplot._core.limits`.
+    """
+    if isinstance(order, bool) or not isinstance(order, (int, np.integer)):
+        raise TypeError(f"order must be an int, got {type(order).__name__}")
+    order = int(order)
+    if order < 0:
+        raise ValueError(f"order must be non-negative, got {order}")
+    check_cells(4**order, f"order {order}", bytes_per_cell=bytes_per_cell)
+    return order
+
+
 def curve_codes(index: int, order: int) -> np.ndarray:
     """Return the order ``order`` stroke codes for curve ``index`` as a ``uint8`` array.
 
     The array is read-only (it is shared from the memo cache); copy it if you need to
     mutate it.
     """
-    if order < 0:
-        raise ValueError(f"order must be non-negative, got {order}")
-    return _codes(index, order)
+    return _codes(index, check_order(order))
 
 
 def curve_word(index: int, order: int) -> str:
@@ -94,6 +113,8 @@ def curve_word(index: int, order: int) -> str:
     >>> curve_word(0, 2)          # the classic Hilbert curve
     'ruluurdrurddldr'
     """
+    # A word is one ASCII byte per stroke, not a 16-byte coordinate pair.
+    check_order(order, bytes_per_cell=1)
     return curve_codes(index, order).tobytes().translate(_CODE_TO_LETTER).decode("ascii")
 
 

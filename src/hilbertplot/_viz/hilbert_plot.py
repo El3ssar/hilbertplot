@@ -15,11 +15,20 @@ min-max range, e.g. ``["red", "green", "tab:blue"]`` sweeps red -> green -> blue
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
 
 from .._core.curve import Curve
 from .._core.curve import curve as _lookup_curve
-from .._data.mapping import granulate, resolve_order, scatter, square_side
+from .._data.mapping import check_fit, granulate, resolve_order, scatter, square_side
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+else:
+    # Runtime stand-in so `get_type_hints()` resolves without importing matplotlib --
+    # see the note in `_core/curve.py`.
+    Axes = Any
 
 __all__ = ["HilbertPlot", "hilbert_plot"]
 
@@ -45,6 +54,58 @@ def _resolve_cmap(cmap):
         resolved = LinearSegmentedColormap.from_list("hilbertplot", colors)
     # Make NaN-filled (unmapped) cells transparent so padding never shows.
     return resolved.with_extremes(bad=(0.0, 0.0, 0.0, 0.0))
+
+
+#: ``draw``'s own parameters.  Anything else in ``**imshow_kw`` is meant for matplotlib --
+#: but a *near miss* of one of these is a typo, and passing it on produces an opaque
+#: ``AxesImage.set() got an unexpected keyword argument`` from deep inside matplotlib.
+_DRAW_PARAMETERS = frozenset(
+    {
+        "cmap", "granularity", "order", "fit", "fill", "ax", "vmin", "vmax", "title",
+        "difference", "difference_threshold", "difference_color", "fourier", "window",
+        "log", "remove_dc", "colorbar",
+    }
+)  # fmt: skip
+
+
+def _imshow_properties() -> frozenset[str]:
+    """Every keyword matplotlib's ``imshow`` legitimately accepts, from matplotlib itself.
+
+    Hard-coding a list would go stale and would misjudge real arguments -- ``zorder``, for
+    instance, is a perfectly good imshow keyword that happens to look like ``order``.
+    """
+    from matplotlib.artist import ArtistInspector
+    from matplotlib.image import AxesImage
+
+    return frozenset(ArtistInspector(AxesImage).get_setters()) | {
+        "norm", "aspect", "interpolation", "alpha", "vmin", "vmax", "origin", "extent",
+        "interpolation_stage", "filternorm", "filterrad", "resample", "url", "data",
+    }  # fmt: skip
+
+
+def _reject_unknown_kwargs(imshow_kw: dict) -> None:
+    """Raise for a keyword that is a near-miss of one of ``draw``'s own parameters.
+
+    Anything matplotlib actually understands is passed straight through; only a name that
+    matplotlib does *not* accept and that closely resembles a ``draw`` parameter is treated
+    as a typo, so the user gets ``did you mean 'granularity'?`` instead of an opaque
+    ``AxesImage.set() got an unexpected keyword argument`` from inside matplotlib.
+    """
+    from difflib import get_close_matches
+
+    unknown = [name for name in imshow_kw if name not in _DRAW_PARAMETERS]
+    if not unknown:
+        return
+    accepted = _imshow_properties()
+    for name in unknown:
+        if name in accepted:
+            continue
+        close = get_close_matches(name, sorted(_DRAW_PARAMETERS), n=1, cutoff=0.8)
+        if close:
+            raise TypeError(
+                f"draw() got an unexpected keyword argument {name!r}; did you mean "
+                f"{close[0]!r}? (Unrecognised keywords are forwarded to matplotlib's imshow.)"
+            )
 
 
 def _overlay_difference(ax, dmap, side, threshold, color):
@@ -98,8 +159,22 @@ class HilbertPlot:
             raise TypeError(f"curve must be a Curve, got {type(curve).__name__}")
         self._curve = curve
         # own a private, read-only copy so the plot never aliases the caller's array
-        self._data = np.array(data, dtype=float).ravel()
-        self._data.flags.writeable = False
+        try:
+            owner = np.array(data, dtype=float)
+        except (TypeError, ValueError) as exc:
+            raise TypeError(
+                f"data must be numeric and convertible to a float array; got "
+                f"{type(data).__name__} ({exc})"
+            ) from exc
+        if owner.size == 0:
+            raise ValueError("data is empty; need at least one value to plot")
+        flat = owner.reshape(-1)
+        # Freeze the *owner* too, not just the flattened view: `reshape` returns a view, so
+        # leaving the base writable would let `plot.data.flags.writeable = True` succeed and
+        # silently corrupt the plot.  With the owner read-only, no view of it can re-enable.
+        owner.flags.writeable = False
+        flat.flags.writeable = False
+        self._data = flat
 
     @property
     def curve(self) -> Curve:
@@ -108,8 +183,13 @@ class HilbertPlot:
 
     @property
     def data(self) -> np.ndarray:
-        """The 1-D data vector, as a read-only array (a private copy of the input)."""
-        return self._data
+        """numpy.ndarray: The 1-D data, as a read-only view of a private copy.
+
+        A fresh view is handed out each time, and the buffer it views is itself read-only,
+        so the writable flag cannot be flipped back on -- mutating a plot's data through
+        this property is impossible rather than merely discouraged.
+        """
+        return self._data.view()
 
     def __len__(self) -> int:
         return self._data.size
@@ -165,6 +245,7 @@ class HilbertPlot:
         fit: str = "auto",
         log: bool = True,
         window: bool = False,
+        remove_dc: bool = True,
     ) -> np.ndarray:
         """Return the 2-D Fourier map of this plot -- the centred power spectrum of the image.
 
@@ -179,6 +260,9 @@ class HilbertPlot:
             Return ``log(1 + |F|)`` so faint structure is visible.
         window : bool, default False
             Apply a Hann window first to suppress edge artifacts.
+        remove_dc : bool, default True
+            Subtract the mean before transforming, so the huge DC spike at the centre does
+            not wash out the pattern.  Pass ``False`` to keep it.
 
         Returns
         -------
@@ -195,10 +279,70 @@ class HilbertPlot:
         from .._data.mapping import fourier_spectrum
 
         img = self.image(granularity=granularity, order=order, fit=fit, fill=np.nan)
-        return fourier_spectrum(img, log=log, window=window)
+        return fourier_spectrum(img, log=log, window=window, remove_dc=remove_dc)
+
+    def difference_map(
+        self, *, granularity: int = 1, order: int | None = None, fit: str = "auto"
+    ) -> np.ndarray:
+        """Return the locality-loss field for **this plot's own grid**.
+
+        :meth:`hilbertplot.Curve.difference_map` takes an order, so it can only describe a
+        ``2**k`` grid.  This one uses whatever grid the plot actually renders on -- including
+        the tight ``ceil(sqrt(N))`` square that ``fit="auto"`` picks for a generalizing
+        curve -- so it matches the overlay ``draw(difference=True)`` paints.
+
+        Parameters
+        ----------
+        granularity, order, fit
+            Resolved exactly as in :meth:`image`, so the grid matches cell for cell.
+
+        Returns
+        -------
+        numpy.ndarray
+            A ``side`` by ``side`` float array of mean 8-neighbour label distances, ``[y, x]``.
+
+        Examples
+        --------
+        >>> import numpy as np, hilbertplot
+        >>> hilbertplot.hilbert_plot(0, np.arange(100)).difference_map().shape
+        (10, 10)
+        """
+        from .._data.mapping import difference_map
+
+        _, points, side = self._layout(granularity, order, fit)
+        return difference_map(points, side)
+
+    def label_map(
+        self, *, granularity: int = 1, order: int | None = None, fit: str = "auto"
+    ) -> np.ndarray:
+        """Return the visit-order index of every cell of this plot's grid.
+
+        ``label_map()[y, x]`` is the step at which the curve reaches cell ``(x, y)``.  Like
+        :meth:`difference_map`, it follows the plot's actual grid rather than a power of two.
+
+        Returns
+        -------
+        numpy.ndarray
+            A ``side`` by ``side`` integer array, indexed ``[y, x]``.
+
+        Examples
+        --------
+        >>> import numpy as np, hilbertplot
+        >>> hilbertplot.hilbert_plot(0, np.arange(100)).label_map().shape
+        (10, 10)
+        """
+        from .._data.mapping import label_map
+
+        _, points, side = self._layout(granularity, order, fit)
+        return label_map(points, side)
 
     def _layout(self, granularity, order, fit):
-        """Resolve (values, curve points, grid side) for a given granularity/order/fit."""
+        """Resolve (values, curve points, grid side) for a given granularity/order/fit.
+
+        ``fit`` is validated up front, even when an explicit ``order`` makes it moot --
+        otherwise a typo like ``fit="squre"`` would pass silently.
+        """
+        check_fit(fit)
         values = self._data
         if granularity != 1:
             values = granulate(values, granularity)
@@ -236,8 +380,11 @@ class HilbertPlot:
         difference_color="#2b6cff",
         fourier: bool = False,
         window: bool = False,
+        log: bool = True,
+        remove_dc: bool = True,
+        colorbar: bool = False,
         **imshow_kw,
-    ):
+    ) -> Axes:
         """Render onto ``ax`` (created if ``None``) and return the axes -- no window.
 
         Parameters
@@ -269,8 +416,15 @@ class HilbertPlot:
             ``difference`` overlay is ignored in this mode.
         window : bool, default False
             (Fourier mode) apply a Hann window first to suppress edge artifacts.
+        log, remove_dc : bool
+            (Fourier mode) as on :meth:`fourier` -- compress the dynamic range, and drop the
+            central DC spike.  Both default to ``True``.
+        colorbar : bool, default False
+            Attach a colourbar to the axes.  The image itself is always available as
+            ``ax.images[-1]`` if you want to build one yourself.
         **imshow_kw
-            Extra keyword arguments forwarded to ``matplotlib``'s ``imshow``.
+            Extra keyword arguments forwarded to ``matplotlib``'s ``imshow`` -- e.g.
+            ``norm=matplotlib.colors.LogNorm()`` for heavy-tailed data.
 
         Returns
         -------
@@ -282,34 +436,45 @@ class HilbertPlot:
         >>> plot = hilbertplot.hilbert_plot(0, np.arange(4096))
         >>> ax = plot.draw("gray", difference=True)                  # doctest: +SKIP
         >>> ax = plot.draw("magma", fourier=True)                    # doctest: +SKIP
+        >>> ax = plot.draw(colorbar=True)                            # doctest: +SKIP
         """
         from .._data.mapping import difference_map, fourier_spectrum
-        from .render import pyplot
+        from .render import bare_axes, pyplot
 
         plt = pyplot()
+        _reject_unknown_kwargs(imshow_kw)
         values, points, side = self._layout(granularity, order, fit)
         image = scatter(points, values, side, fill)
         if fourier:
-            image = fourier_spectrum(image, log=True, window=window)
+            image = fourier_spectrum(image, log=log, window=window, remove_dc=remove_dc)
             difference = False  # not meaningful on a spectrum
         if ax is None:
             _, ax = plt.subplots(figsize=(5, 5))
-        if fourier and (vmin is None or vmax is None):
+        # A caller-supplied `norm` carries its own limits, and matplotlib refuses to accept
+        # both; so once a norm is given we must not fill in our default vmin/vmax.
+        caller_norm = imshow_kw.get("norm") is not None
+        if caller_norm and (vmin is not None or vmax is not None):
+            raise ValueError(
+                "pass either norm= or vmin=/vmax=, not both -- set the limits on the norm "
+                "itself, e.g. LogNorm(vmin=1, vmax=1000)"
+            )
+        if fourier and not caller_norm and (vmin is None or vmax is None):
             # percentile contrast so faint spectral structure is visible by default
             lo, hi = np.percentile(image, [50.0, 99.8])
             vmin = lo if vmin is None else vmin
             vmax = (hi if hi > lo else image.max()) if vmax is None else vmax
-        if vmin is None:
-            vmin = np.nanmin(image)
-        if vmax is None:
-            vmax = np.nanmax(image)
-        ax.imshow(
+        if not caller_norm:
+            if vmin is None:
+                vmin = np.nanmin(image)
+            if vmax is None:
+                vmax = np.nanmax(image)
+            imshow_kw["vmin"] = vmin
+            imshow_kw["vmax"] = vmax
+        mappable = ax.imshow(
             image,
             origin="lower",
             interpolation="nearest",
             cmap=_resolve_cmap(cmap),
-            vmin=vmin,
-            vmax=vmax,
             extent=(-0.5, side - 0.5, -0.5, side - 0.5),
             **imshow_kw,
         )
@@ -317,11 +482,9 @@ class HilbertPlot:
             _overlay_difference(
                 ax, difference_map(points, side), side, difference_threshold, difference_color
             )
-        ax.set_aspect("equal")
-        ax.set_xticks([])
-        ax.set_yticks([])
-        for spine in ax.spines.values():
-            spine.set_visible(False)
+        bare_axes(ax)
+        if colorbar:
+            ax.get_figure().colorbar(mappable, ax=ax, fraction=0.046, pad=0.04)
         if title is None:
             gran = "" if granularity == 1 else f", {granularity}-granularity"
             kind = "Fourier map" if fourier else "Hilbert plot"
@@ -329,8 +492,8 @@ class HilbertPlot:
         ax.set_title(title, fontsize=9)
         return ax
 
-    def show(self, cmap="viridis", **kwargs):
-        """Draw the plot and open a window.
+    def show(self, cmap="viridis", **kwargs) -> Axes:
+        """Draw the plot, open a window, and return the axes.
 
         Parameters
         ----------
@@ -375,15 +538,25 @@ class HilbertPlot:
         ...     "out.png", ["red", "green", "tab:blue"])          # doctest: +SKIP
         'out.png'
         """
-        from .render import pyplot
+        from .render import save_figure
 
-        ax = self.draw(cmap, **kwargs)
-        ax.figure.savefig(path, dpi=dpi, bbox_inches="tight")
-        pyplot().close(ax.figure)
-        return path
+        return save_figure(self.draw(cmap, **kwargs), path, dpi=dpi)
 
     def __repr__(self) -> str:
         return f"<HilbertPlot: {len(self)} values on {self._curve.name}>"
+
+    def _repr_png_(self) -> bytes | None:
+        """Render inline in Jupyter, so a bare ``plot`` in a cell shows the image.
+
+        Returns ``None`` when matplotlib is not installed, so the notebook falls back to
+        :meth:`__repr__` rather than raising -- matplotlib is an optional extra.
+        """
+        try:
+            from .render import figure_png
+
+            return figure_png(self.draw())
+        except ModuleNotFoundError:  # pragma: no cover - matplotlib is a test dependency
+            return None
 
 
 def hilbert_plot(curve: Curve | int | str, data) -> HilbertPlot:

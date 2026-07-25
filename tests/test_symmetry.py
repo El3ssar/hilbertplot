@@ -24,7 +24,7 @@ PAPER_TABLES = {
 }
 
 
-@pytest.mark.parametrize("code,table", PAPER_TABLES.items())
+@pytest.mark.parametrize(("code", "table"), PAPER_TABLES.items())
 def test_morphism_matches_paper(code, table):
     sym = MORPHISMS[code]
     for letter, expected in table.items():

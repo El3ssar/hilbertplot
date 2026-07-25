@@ -10,15 +10,8 @@ INFEASIBLE = [i for i in range(40) if i not in FEASIBLE]
 
 
 def _hamiltonian(cells, n):
-    if cells.shape != (n * n, 2):
-        return False
-    if len({tuple(c) for c in cells}) != n * n:
-        return False
-    if cells[:, 0].min() or cells[:, 1].min():
-        return False
-    if cells[:, 0].max() != n - 1 or cells[:, 1].max() != n - 1:
-        return False
-    return bool((np.abs(np.diff(cells, axis=0)).sum(1) == 1).all())
+    """The predicate these tests assert -- which is exactly the public checker."""
+    return hp.is_space_filling(cells, n)
 
 
 # -- the group / property ---------------------------------------------------
@@ -38,7 +31,7 @@ def test_generalizes_property():
 @pytest.mark.parametrize("index", FEASIBLE)
 def test_grid_is_hamiltonian(index):
     c = hp.curve(index)
-    for n in list(range(1, 34)) + [50, 64, 100]:
+    for n in [*range(1, 34), 50, 64, 100]:
         assert _hamiltonian(c.grid(n), n), f"{c.name} grid({n}) not Hamiltonian"
 
 
@@ -49,15 +42,70 @@ def test_grid_matches_points_at_powers_of_two(index):
         assert np.array_equal(c.grid(2**k), c.points(k))
 
 
+# -- the construction stays a single connected path at every size ------------
+@pytest.mark.parametrize("index", FEASIBLE)
+def test_grid_is_connected_at_odd_sizes(index):
+    """Odd sizes are what the per-curve swap rule exists for; a rewrite could break them."""
+    c = hp.curve(index)
+    for n in (3, 5, 7, 9, 11, 13, 15, 21, 33, 49, 65):
+        cells = c.grid(n)
+        steps = np.abs(np.diff(cells, axis=0)).sum(1)
+        assert (steps == 1).all(), f"{c.name} grid({n}) has a discontinuity"
+
+
+@pytest.mark.parametrize("index", FEASIBLE)
+def test_grid_matches_points_at_larger_powers_of_two(index):
+    """The block-memoised fill must stay bit-identical to the stroke-based construction."""
+    c = hp.curve(index)
+    for k in (6, 7):
+        assert np.array_equal(c.grid(2**k), c.points(k))
+
+
 # -- gating -----------------------------------------------------------------
 @pytest.mark.parametrize("index", INFEASIBLE)
 def test_grid_raises_for_infeasible(index):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="does not tile arbitrary squares"):
         hp.curve(index).grid(10)
 
 
+@pytest.mark.parametrize("index", INFEASIBLE)
+def test_smallest_failure_table_is_exactly_the_smallest_failure(index):
+    """The number grid() quotes must be true, and minimal.
+
+    It is interpolated straight into a user-facing error, so a stale entry makes the
+    library state a falsehood -- three entries did before this test existed.
+    """
+    from hilbertplot._core.arbitrary import SMALLEST_FAILURE, square_points
+
+    claimed = SMALLEST_FAILURE[index]
+    assert not _hamiltonian(square_points(index, claimed), claimed), (
+        f"curve {index}: the construction actually succeeds at n={claimed}"
+    )
+    for smaller in range(1, claimed):
+        assert _hamiltonian(square_points(index, smaller), smaller), (
+            f"curve {index}: also fails at n={smaller}, so {claimed} is not the smallest"
+        )
+
+
+def test_smallest_failure_covers_exactly_the_infeasible_curves():
+    from hilbertplot._core.arbitrary import FEASIBLE as FEASIBLE_SET
+    from hilbertplot._core.arbitrary import SMALLEST_FAILURE
+
+    assert sorted(SMALLEST_FAILURE) == INFEASIBLE
+    assert set(SMALLEST_FAILURE) & FEASIBLE_SET == set()
+
+
+def test_infeasible_error_names_the_size_and_points_at_the_alternative():
+    with pytest.raises(ValueError, match="Moore") as exc:
+        hp.curve(1).grid(10)
+    message = str(exc.value)
+    assert "Moore" in message
+    assert "n=3" in message  # its verified smallest failure
+    assert "generalizing()" in message
+
+
 def test_grid_rejects_bad_n():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="n must be >= 1"):
         hp.curve(0).grid(0)
 
 
@@ -79,7 +127,7 @@ def test_infeasible_curve_falls_back_to_pad():
 
 
 def test_explicit_fit_square_rejected_for_infeasible():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="needs a generalizing curve"):
         hp.hilbert_plot(1, np.arange(100)).image(fit="square")
 
 

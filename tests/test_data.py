@@ -9,19 +9,19 @@ from hilbertplot._data.mapping import granulate, order_floor, order_for
 
 # -- order_for / order_floor ------------------------------------------------
 @pytest.mark.parametrize(
-    "n,order", [(1, 0), (4, 1), (16, 2), (1024, 5), (1000, 5), (1025, 6), (3_000_000, 11)]
+    ("n", "order"), [(1, 0), (4, 1), (16, 2), (1024, 5), (1000, 5), (1025, 6), (3_000_000, 11)]
 )
 def test_order_for(n, order):
     assert order_for(n) == order
 
 
-@pytest.mark.parametrize("n,order", [(1, 0), (4, 1), (15, 1), (16, 2), (1000, 4), (1024, 5)])
+@pytest.mark.parametrize(("n", "order"), [(1, 0), (4, 1), (15, 1), (16, 2), (1000, 4), (1024, 5)])
 def test_order_floor(n, order):
     assert order_floor(n) == order
 
 
 def test_order_for_rejects_empty():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="at least one value"):
         order_for(0)
 
 
@@ -45,7 +45,7 @@ def test_granulate_handles_trailing_partial_block():
 
 
 def test_granulate_rejects_bad_l():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="granularity"):
         granulate([1, 2, 3], 0)
 
 
@@ -132,7 +132,7 @@ def test_explicit_small_order_truncates():
 
 
 def test_bad_fit_rejected():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="fit must be one of"):
         hp.hilbert_plot(0, [1, 2, 3]).image(fit="nonsense")
 
 
@@ -154,14 +154,14 @@ def test_unroll_is_inverse_of_hilbert_plot(index, order):
 
 
 def test_unroll_rejects_non_square():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="square 2-D array"):
         hp.curve(0).unroll(np.zeros((4, 8)))
 
 
 def test_unroll_rejects_non_power_of_two_for_non_generalizing_curve():
     # Moore does not generalize, so a non-2^k side must be rejected.
     assert not hp.curve(1).generalizes
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not a power of two"):
         hp.curve(1).unroll(np.zeros((6, 6)))
 
 
@@ -198,7 +198,7 @@ def test_barrier_shrinks_as_threshold_rises():
     D = hp.curve(0).difference_map(5)
 
     def n_barrier(t):
-        return int((D > D.mean() + t * D.std()).sum())
+        return int((D.mean() + t * D.std() < D).sum())
 
     assert n_barrier(0.0) >= n_barrier(0.5) >= n_barrier(1.0) >= n_barrier(2.0)
     assert n_barrier(1.0) > 0  # there is always a barrier (quadrants 1 & 4)
@@ -214,4 +214,5 @@ def test_interior_cell_averages_eight_neighbours():
     # label_map is a bijection onto 0..15
     assert sorted(lab.ravel().tolist()) == list(range(16))
     D = difference_map(pts, 4)
-    assert D.shape == (4, 4) and np.isfinite(D).all()
+    assert D.shape == (4, 4)
+    assert np.isfinite(D).all()

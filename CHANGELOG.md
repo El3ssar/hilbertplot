@@ -7,6 +7,24 @@ All notable changes to **hilbertplot** are documented here. The format follows
 Released versions below are generated automatically by python-semantic-release;
 new entries are inserted at the marker.
 
+## Migrating from 0.1.0
+
+`hilbertplot` is on `0.x`, where [semver §4](https://semver.org/#spec-item-4) allows the
+interface to change in a minor release. Two spellings changed; both fail loudly rather
+than silently, and nothing else in the 0.1.0 surface was removed.
+
+| 0.1.0 | now | why |
+| --- | --- | --- |
+| `curve.plot(order)` | `curve.draw(order)` | one verb for "render onto axes", shared with `HilbertPlot.draw` |
+| `curve.save(order, path)` | `curve.save(path, order)` | matches `HilbertPlot.save(path, ...)`; the old order raises a `TypeError` naming the fix |
+| `repr(curve)` → `'Hilbert'` | `repr(curve)` → `'<Curve 0H Hilbert (proper)>'` | `repr` is now unambiguous; `str(curve)` is still `'Hilbert'` |
+
+Behaviour that was buggy and is now stricter: `curve(True)` and `curve(3.0)` raise
+`TypeError` instead of silently meaning `curve(1)` / `curve(3)`; an out-of-range index
+raises `IndexError` rather than `KeyError` (both are `LookupError`); `plot.data` is
+genuinely immutable rather than merely flagged; and `image(order=..., fit=...)` now
+validates `fit` instead of ignoring it.
+
 <!-- version list -->
 
 ## v0.1.0 (2026-07-25)

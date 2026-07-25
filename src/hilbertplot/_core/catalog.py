@@ -39,13 +39,20 @@ import enum
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
+from .symmetry import MORPHISMS
+
 __all__ = [
-    "Family",
-    "QuadrantRule",
-    "CurveSpec",
+    "QUADRANT_MATRICES",
     "SPECS",
+    "CurveSpec",
+    "Family",
+    "Matrix",
+    "QuadrantRule",
     "spec_by_index",
 ]
+
+#: An element of :math:`D_4` as a plain nested tuple -- hashable, and cheap to multiply.
+Matrix = tuple[tuple[int, int], tuple[int, int]]
 
 
 class Family(enum.Enum):
@@ -413,6 +420,26 @@ def _with_friendly_names(specs: tuple[CurveSpec, ...]) -> tuple[CurveSpec, ...]:
 #: All forty specifications, ordered by index.
 SPECS: tuple[CurveSpec, ...] = _with_friendly_names(_PROPER + _IMPROPER + _INHOMOGENEOUS)
 
+#: Per curve, the four quadrant rules as ``(kernel index, D4 matrix, reverse)``.
+#:
+#: The same information as :attr:`CurveSpec.quadrants`, with each morphism resolved to its
+#: matrix -- the form the geometric constructions in :mod:`hilbertplot._core.arbitrary` and
+#: :mod:`hilbertplot._core.indexing` consume.  Built once, at import.
+QUADRANT_MATRICES: Mapping[int, tuple[tuple[int, Matrix, bool], ...]] = {
+    spec.index: tuple(
+        (
+            rule.base,
+            (
+                tuple(MORPHISMS[rule.morphism].matrix[0]),
+                tuple(MORPHISMS[rule.morphism].matrix[1]),
+            ),
+            rule.reverse,
+        )
+        for rule in spec.quadrants
+    )
+    for spec in SPECS
+}
+
 _BY_INDEX: Mapping[int, CurveSpec] = {s.index: s for s in SPECS}
 
 
@@ -429,23 +456,31 @@ def spec_by_index(index: int) -> CurveSpec:
 # --- internal consistency checks (cheap, run once at import) ----------------
 # These guard against typos in the table above: the declared family must agree
 # with what the kernels imply, and only valid building blocks may appear.
+#
+# Deliberately `raise` rather than `assert`: these validate the shipped table, so they
+# must still run under `python -O`, where assertions are stripped out entirely.
 def _self_check() -> None:
-    assert len(SPECS) == 40, f"expected 40 curves, found {len(SPECS)}"
-    assert [s.index for s in SPECS] == list(range(40)), "curve indices must be 0..39"
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            raise RuntimeError(f"hilbertplot catalog is inconsistent: {message}")
+
+    require(len(SPECS) == 40, f"expected 40 curves, found {len(SPECS)}")
+    require([s.index for s in SPECS] == list(range(40)), "curve indices must be 0..39")
     valid_kernels = {0, 1, 3, 4, 5}  # never 2 (Liu1 cannot connect quadrants)
     for s in SPECS:
-        assert len(s.quadrants) == 4, f"curve {s.index} needs four quadrants"
-        assert s.kernels <= valid_kernels, (
-            f"curve {s.index} uses invalid kernel(s) {s.kernels - valid_kernels}"
+        require(len(s.quadrants) == 4, f"curve {s.index} needs four quadrants")
+        require(
+            s.kernels <= valid_kernels,
+            f"curve {s.index} uses invalid kernel(s) {set(s.kernels - valid_kernels)}",
         )
-        implied_homogeneous = len(s.kernels) == 1
-        assert implied_homogeneous == s.is_homogeneous, (
-            f"curve {s.index}: family {s.family} disagrees with kernels {set(s.kernels)}"
+        require(
+            (len(s.kernels) == 1) == s.is_homogeneous,
+            f"curve {s.index}: family {s.family} disagrees with kernels {set(s.kernels)}",
         )
         if s.family is Family.HOMOGENEOUS_PROPER:
-            assert s.kernels == {0}, f"proper curve {s.index} must use kernel 0H"
+            require(s.kernels == {0}, f"proper curve {s.index} must use kernel 0H")
         elif s.family is Family.HOMOGENEOUS_IMPROPER:
-            assert s.kernels == {5}, f"improper curve {s.index} must use kernel 5H"
+            require(s.kernels == {5}, f"improper curve {s.index} must use kernel 5H")
 
 
 _self_check()

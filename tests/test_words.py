@@ -33,11 +33,11 @@ def test_words_only_use_four_letters():
 
 
 def test_negative_order_rejected():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="non-negative"):
         curve_word(0, -1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="non-negative"):
         word_length(-1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="non-negative"):
         curve_codes(0, -1)
 
 
@@ -49,13 +49,13 @@ def test_codes_agree_with_word(index):
         assert list(codes) == list(word_to_codes(curve_word(index, order)))
 
 
-def test_high_order_generation(index=0):
+def test_high_order_generation():
     # Exercise the fast path at scale: a million-stroke curve stays space-filling.
     from hilbertplot._core.geometry import is_space_filling
 
     pts = hp.curve(0).points(10)
     assert pts.shape == (4**10, 2)
-    assert is_space_filling(pts, 10)
+    assert is_space_filling(pts, 2**10)
 
 
 def test_cache_clear_is_safe():

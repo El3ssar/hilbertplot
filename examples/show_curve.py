@@ -38,7 +38,7 @@ def main() -> None:
     )
 
     if args.save:
-        c.save(args.order, args.save, **style)
+        c.save(args.save, args.order, **style)
         print(f"saved -> {args.save}")
     else:
         c.show(args.order, **style)

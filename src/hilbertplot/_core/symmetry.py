@@ -29,26 +29,26 @@ The eight elements of :math:`D_4` are exposed both as named constants and throug
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import cached_property
 
 __all__ = [
-    "Direction",
+    "ANTIDIAGONAL",
+    "DIAGONAL",
     "DIRECTIONS",
     "DIRECTION_VECTORS",
-    "Symmetry",
-    "MORPHISMS",
+    "FLIP_HORIZONTAL",
+    "FLIP_VERTICAL",
     "IDENTITY",
+    "MORPHISMS",
     "ROT90",
     "ROT180",
     "ROT270",
-    "FLIP_VERTICAL",
-    "FLIP_HORIZONTAL",
-    "DIAGONAL",
-    "ANTIDIAGONAL",
-    "reverse_word",
+    "Direction",
+    "Symmetry",
     "apply_morphism",
+    "reverse_word",
 ]
 
 #: The four direction letters, in a fixed canonical order.
@@ -176,11 +176,3 @@ def reverse_word(word: str) -> str:
     """
     flip = ROT180._letter_map
     return "".join(flip[letter] for letter in reversed(word))
-
-
-def compose_all(symmetries: Iterable[Symmetry]) -> Symmetry:
-    """Compose a sequence of symmetries left to right, returning their product."""
-    result = IDENTITY
-    for sym in symmetries:
-        result = result.compose(sym)
-    return result

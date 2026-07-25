@@ -8,23 +8,40 @@ tidy table.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
 
 from .catalog import SPECS, CurveSpec, Family, spec_by_index
 from .generation import curve_word
 
+if TYPE_CHECKING:
+    # Annotation-only imports: matplotlib is an optional extra and must stay out of the
+    # import path, and HilbertPlot would be a cycle.
+    from matplotlib.axes import Axes
+
+    from .._viz.hilbert_plot import HilbertPlot
+else:
+    # ...but `from __future__ import annotations` makes every annotation a string, and
+    # `typing.get_type_hints()` evaluates those strings in the *module* namespace.  Without
+    # runtime stand-ins it raises NameError, which breaks Sphinx autodoc, pydantic and
+    # anything else that introspects a py.typed package.  `Any` is the honest runtime
+    # answer; type checkers still see the real classes above.
+    Axes = Any
+    HilbertPlot = Any
+
 __all__ = [
     "Curve",
     "CurveList",
-    "curve",
+    "by_kernels",
     "catalog",
+    "closed",
+    "curve",
+    "generalizing",
     "homogeneous",
+    "improper",
     "inhomogeneous",
     "proper",
-    "improper",
-    "closed",
-    "generalizing",
-    "by_kernels",
 ]
 
 _KIND = {
@@ -32,6 +49,34 @@ _KIND = {
     Family.HOMOGENEOUS_IMPROPER: "improper",
     Family.INHOMOGENEOUS: "inhomogeneous",
 }
+
+
+#: Order used for the inline notebook preview: fine enough to show the curve's character,
+#: coarse enough that a cell renders instantly.
+_REPR_ORDER = 5
+
+
+def _check_int(value: int, name: str) -> int:
+    """Return ``value`` as an ``int``, rejecting ``bool`` and non-integers.
+
+    ``bool`` is a subclass of ``int``, so without this ``curve(True)`` would quietly mean
+    ``curve(1)``; and ``3.0`` would index as ``3`` while ``3.5`` silently truncated.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+        raise TypeError(f"{name} must be an int, got {type(value).__name__}")
+    return int(value)
+
+
+def _check_index_order(order: int) -> int:
+    """Validate an ``order`` for the ``O(order)`` index maths, which materialises nothing.
+
+    Unlike :func:`hilbertplot._core.generation.check_order` there is no memory ceiling
+    here -- :meth:`Curve.encode` at order 200 is perfectly reasonable.
+    """
+    order = _check_int(order, "order")
+    if order < 0:
+        raise ValueError(f"order must be non-negative, got {order}")
+    return order
 
 
 class Curve:
@@ -71,6 +116,11 @@ class Curve:
     __slots__ = ("_spec",)
 
     def __init__(self, spec: CurveSpec) -> None:
+        if not isinstance(spec, CurveSpec):
+            raise TypeError(
+                f"Curve() takes a CurveSpec, got {type(spec).__name__}; use "
+                f"hilbertplot.curve({spec!r}) to look a curve up by index, name or symbol."
+            )
         self._spec = spec
 
     # -- identity ------------------------------------------------------------
@@ -200,7 +250,10 @@ class Curve:
         ------
         ValueError
             If this curve does not generalize to arbitrary squares
-            (:attr:`generalizes` is ``False``), or ``n < 1``.
+            (:attr:`generalizes` is ``False``), ``n < 1``, or the square would exceed
+            :func:`hilbertplot.cell_limit`.
+        TypeError
+            If ``n`` is not an integer.
 
         Examples
         --------
@@ -208,18 +261,124 @@ class Curve:
         >>> hilbertplot.curve(0).grid(100).shape
         (10000, 2)
         """
-        from .arbitrary import FEASIBLE, WITNESS, square_points
+        from .arbitrary import FEASIBLE, SMALLEST_FAILURE, square_points
+        from .limits import check_cells
 
+        # Argument shape first, curve capability second -- otherwise `grid(-2)` on an
+        # infeasible curve blames the curve and quotes a size the caller never asked for.
+        n = _check_int(n, "n")
+        if n < 1:
+            raise ValueError(f"n must be >= 1, got {n}")
         idx = self._spec.index
         if idx not in FEASIBLE:
             raise ValueError(
-                f"{self.name} does not tile arbitrary squares (it fails at "
-                f"n={WITNESS.get(idx, '?')}); use points(order) for a 2**order grid, "
-                f"or pick a curve from hilbertplot.generalizing()."
+                f"{self.name} does not tile arbitrary squares (the construction already "
+                f"breaks at n={SMALLEST_FAILURE[idx]}); use points(order) for a 2**order "
+                f"grid, or pick a curve from hilbertplot.generalizing()."
             )
-        if n < 1:
-            raise ValueError(f"n must be >= 1, got {n}")
+        check_cells(n * n, f"a {n}x{n} square")
         return square_points(idx, n)
+
+    def encode(self, i: int, order: int) -> tuple[int, int]:
+        """Return the ``(x, y)`` cell this curve visits at step ``i``, without building it.
+
+        Where :meth:`points` materialises all ``4**order`` cells, ``encode`` answers for a
+        single step in ``O(order)`` arithmetic -- so it works at orders whose curve could
+        never fit in memory.
+
+        Parameters
+        ----------
+        i : int
+            Step along the curve, ``0 <= i < 4**order``.
+        order : int
+            Recursion depth ``>= 0``.
+
+        Returns
+        -------
+        tuple of int
+            The cell ``(x, y)``, each coordinate in ``0``..``2**order - 1``.
+
+        See Also
+        --------
+        decode : the inverse.
+
+        Examples
+        --------
+        >>> import hilbertplot
+        >>> hilbertplot.curve(0).encode(5, 2)
+        (0, 3)
+        >>> hilbertplot.curve(0).encode(10**18, 40)     # 2**80 cells: unbuildable
+        (751054336, 346100736)
+        """
+        from .indexing import encode
+
+        order = _check_index_order(order)
+        i = _check_int(i, "i")
+        if not 0 <= i < 4**order:
+            raise ValueError(f"i must be in 0..{4**order - 1} for order {order}, got {i}")
+        return encode(self._spec.index, i, order)
+
+    def decode(self, x: int, y: int, order: int) -> int:
+        """Return the step at which this curve reaches cell ``(x, y)``, without building it.
+
+        The inverse of :meth:`encode`, also ``O(order)``.
+
+        Parameters
+        ----------
+        x, y : int
+            Cell coordinates, each in ``0``..``2**order - 1``.
+        order : int
+            Recursion depth ``>= 0``.
+
+        Returns
+        -------
+        int
+            The step ``i`` with ``encode(i, order) == (x, y)``.
+
+        See Also
+        --------
+        encode : the inverse.
+
+        Examples
+        --------
+        >>> import hilbertplot
+        >>> hilbertplot.curve(0).decode(0, 3, 2)
+        5
+        """
+        from .indexing import decode
+
+        order = _check_index_order(order)
+        side = 1 << order
+        x, y = _check_int(x, "x"), _check_int(y, "y")
+        if not (0 <= x < side and 0 <= y < side):
+            raise ValueError(f"(x, y) must lie in 0..{side - 1} for order {order}, got {(x, y)}")
+        return decode(self._spec.index, x, y, order)
+
+    def label_map(self, order: int) -> np.ndarray:
+        """Return the ``(2**order, 2**order)`` grid of visit-order indices.
+
+        ``label_map(order)[y, x]`` is the step at which the curve reaches cell ``(x, y)``
+        -- the inverse of :meth:`points`, as an image.
+
+        Parameters
+        ----------
+        order : int
+            Recursion depth ``>= 0``.
+
+        Returns
+        -------
+        numpy.ndarray
+            An integer array indexed ``[y, x]``.
+
+        Examples
+        --------
+        >>> import hilbertplot
+        >>> hilbertplot.curve(0).label_map(1).tolist()
+        [[0, 3], [1, 2]]
+        """
+        from .._data.mapping import label_map
+
+        return label_map(self.points(order), 2**order)
 
     def unroll(self, array) -> np.ndarray:
         """Read a 2-D array along this curve's path, returning a 1-D vector.
@@ -313,7 +472,7 @@ class Curve:
         return difference_map(self.points(order), 2**order)
 
     # -- data plotting -------------------------------------------------------
-    def plot_data(self, data) -> HilbertPlot:  # noqa: F821 (forward ref)
+    def plot_data(self, data) -> HilbertPlot:
         """Bind a 1-D ``data`` vector to this curve, returning a :class:`HilbertPlot`.
 
         Nothing is drawn.  The returned object renders on demand -- choose the colormap,
@@ -339,8 +498,8 @@ class Curve:
         return HilbertPlot(self, data)
 
     # -- curve plotting ------------------------------------------------------
-    def plot(self, order: int, ax=None, **style):
-        """Draw the curve at ``order`` and return the matplotlib ``Axes``.
+    def draw(self, order: int, ax: Axes | None = None, **style) -> Axes:
+        """Draw the curve at ``order`` onto ``ax`` and return it -- no window.
 
         Parameters
         ----------
@@ -349,56 +508,91 @@ class Curve:
         ax : matplotlib.axes.Axes, optional
             Axes to draw on; a new figure is created when ``None``.
         **style
-            Forwarded to the renderer (``mode``, ``color``, ``cmap``, ``linewidth``, ...).
+            Forwarded to the renderer:
+
+            ``mode`` : {"auto", "line", "fill"}
+                ``"line"`` draws the polyline (colour-graded by traversal order below
+                order 8), ``"fill"`` paints one pixel per cell.  ``"auto"`` picks ``line``
+                below order 8 and ``fill`` at or above it.
+            ``color`` : color
+                A solid line colour; overrides the traversal gradient.
+            ``cmap`` : str, default "viridis"
+                Colormap for the gradient and fill modes.
+            ``linewidth`` : float
+                Line width; scaled from ``order`` when omitted.
+            ``endpoints`` : bool, default True
+                Mark the entry (circle) and exit (square) cells.
+            ``title`` : str
+                Axes title; names the curve and order when omitted.
 
         Returns
         -------
         matplotlib.axes.Axes
+
+        Examples
+        --------
+        >>> import hilbertplot
+        >>> ax = hilbertplot.curve(0).draw(4)                        # doctest: +SKIP
+        >>> ax = hilbertplot.curve("Moore").draw(8, mode="fill")     # doctest: +SKIP
         """
         from .._viz.render import draw
 
         return draw(self, order, ax=ax, **style)
 
-    def show(self, order: int, **style) -> None:
-        """Draw the curve at ``order`` and open a window.
+    def show(self, order: int, **style) -> Axes:
+        """Draw the curve at ``order``, open a window, and return the axes.
 
         Parameters
         ----------
         order : int
             Recursion depth to render.
         **style
-            Forwarded to :meth:`plot`.
+            Forwarded to :meth:`draw`.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
         """
-        from .._viz.render import draw, pyplot
+        from .._viz.render import pyplot
 
-        draw(self, order, ax=None, **style)
+        ax = self.draw(order, **style)
         pyplot().show()
+        return ax
 
-    def save(self, order: int, path: str, *, dpi: int = 140, **style) -> str:
+    def save(self, path: str, order: int, *, dpi: int = 140, **style) -> str:
         """Draw the curve at ``order``, save it to ``path`` and return ``path``.
 
         Parameters
         ----------
-        order : int
-            Recursion depth to render.
         path : str
             Output file path (format inferred from the extension).
+        order : int
+            Recursion depth to render.
         dpi : int, default 140
             Output resolution.
         **style
-            Forwarded to :meth:`plot`.
+            Forwarded to :meth:`draw`.
 
         Returns
         -------
         str
             ``path``.
-        """
-        from .._viz.render import draw, pyplot
 
-        ax = draw(self, order, ax=None, **style)
-        ax.figure.savefig(path, dpi=dpi, bbox_inches="tight")
-        pyplot().close(ax.figure)
-        return path
+        Examples
+        --------
+        >>> import hilbertplot
+        >>> hilbertplot.curve(0).save("hilbert.png", 6)       # doctest: +SKIP
+        'hilbert.png'
+        """
+        from .._viz.render import save_figure
+
+        if isinstance(path, (int, np.integer)) and isinstance(order, str):
+            # 0.1.0 spelled this save(order, path); fail loudly rather than confusingly.
+            raise TypeError(
+                "Curve.save() now takes (path, order) so it matches HilbertPlot.save(); "
+                f"call save({order!r}, {path!r}) instead."
+            )
+        return save_figure(self.draw(order, **style), path, dpi=dpi)
 
     # -- dunders -------------------------------------------------------------
     def __eq__(self, other: object) -> bool:
@@ -407,17 +601,59 @@ class Curve:
     def __hash__(self) -> int:
         return hash(self._spec.index)
 
+    def __lt__(self, other: object) -> bool:
+        """Order by index, so ``sorted``/``min``/``max`` work over a :class:`CurveList`."""
+        if not isinstance(other, Curve):
+            return NotImplemented
+        return self._spec.index < other._spec.index
+
+    def __le__(self, other: object) -> bool:
+        if not isinstance(other, Curve):
+            return NotImplemented
+        return self._spec.index <= other._spec.index
+
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, Curve):
+            return NotImplemented
+        return self._spec.index > other._spec.index
+
+    def __ge__(self, other: object) -> bool:
+        if not isinstance(other, Curve):
+            return NotImplemented
+        return self._spec.index >= other._spec.index
+
+    def __index__(self) -> int:
+        """Allow a ``Curve`` to be used wherever its index is expected."""
+        return self._spec.index
+
     def __repr__(self) -> str:
+        return f"<Curve {self.symbol} {self._spec.name} ({self.kind})>"
+
+    def __str__(self) -> str:
         return self._spec.name
 
-    __str__ = __repr__
+    def _repr_png_(self) -> bytes | None:
+        """Render inline in Jupyter, so ``hilbertplot.curve(0)`` in a cell shows the curve.
+
+        Returns ``None`` when matplotlib is not installed, which makes the notebook fall
+        back to :meth:`__repr__` instead of raising -- matplotlib is an optional extra.
+        """
+        try:
+            from .._viz.render import figure_png
+        except ModuleNotFoundError:  # pragma: no cover - matplotlib is a test dependency
+            return None
+        try:
+            return figure_png(self.draw(_REPR_ORDER, ax=None))
+        except ModuleNotFoundError:  # pragma: no cover - matplotlib absent
+            return None
 
 
 class CurveList(list):
     """A ``list`` of :class:`Curve` objects that prints as a readable table.
 
-    Behaves exactly like a list (indexing, iteration, ``len``); only its text
-    representation is prettier.
+    Behaves exactly like a list (indexing, iteration, ``len``), and slicing, ``+`` and
+    ``copy()`` give back a ``CurveList`` rather than degrading to a plain ``list``, so
+    groups stay composable and keep printing as a table.
 
     Examples
     --------
@@ -431,8 +667,54 @@ class CurveList(list):
     3  Liu2     proper
     4  Liu3     proper
     5  Liu4     proper
+    >>> hilbertplot.proper()[:2].names
+    ['Hilbert', 'Moore']
+    >>> hilbertplot.catalog().closed().names
+    ['Moore', 'Liu1', 'Improper1', 'Improper4']
     """
 
+    # -- keep the type through the usual list operations ---------------------
+    def __getitem__(self, item):
+        result = list.__getitem__(self, item)
+        return CurveList(result) if isinstance(item, slice) else result
+
+    def __add__(self, other):
+        return CurveList(list.__add__(self, other))
+
+    def __mul__(self, count):
+        return CurveList(list.__mul__(self, count))
+
+    __rmul__ = __mul__
+
+    def copy(self) -> CurveList:
+        return CurveList(self)
+
+    # -- convenience ---------------------------------------------------------
+    @property
+    def indices(self) -> list[int]:
+        """list[int]: The index of every curve in this list."""
+        return [c.index for c in self]
+
+    @property
+    def names(self) -> list[str]:
+        """list[str]: The name of every curve in this list."""
+        return [c.name for c in self]
+
+    def closed(self) -> CurveList:
+        """Return just the curves in this list that close into a loop."""
+        return CurveList(c for c in self if c.is_closed)
+
+    def generalizing(self) -> CurveList:
+        """Return just the curves in this list that tile arbitrary ``n x n`` squares."""
+        return CurveList(c for c in self if c.generalizes)
+
+    def gallery(self, order: int = 3, **kwargs):
+        """Draw this list as a grid of panels -- see :func:`hilbertplot.gallery`."""
+        from .._viz.render import gallery
+
+        return gallery(self, order=order, **kwargs)
+
+    # -- presentation --------------------------------------------------------
     def __repr__(self) -> str:
         if not self:
             return "CurveList([])"
@@ -466,16 +748,25 @@ for _c in _CATALOG:
     _BY_NAME[_norm(_c.symbol)] = _c
 
 
-def curve(which: int | str) -> Curve:
-    """Fetch a curve by index, friendly name, or paper symbol.
+def _suggest(name: str, limit: int = 3) -> list[str]:
+    """Return the closest real curve names to a misspelling, or an empty list if none are."""
+    from difflib import get_close_matches
+
+    candidates = {c.name for c in _CATALOG} | {c.symbol for c in _CATALOG}
+    return get_close_matches(name, sorted(candidates), n=limit, cutoff=0.6)
+
+
+def curve(which: int | str | Curve) -> Curve:
+    """Fetch a curve by index, friendly name, paper symbol -- or pass one straight through.
 
     Parameters
     ----------
-    which : int or str
+    which : int or str or Curve
         A curve index (``0``..``39``), a friendly name (``"Moore"``,
         ``"Liu2+Liu4 #1"``), or a paper symbol (``"12H"``).  Name/symbol lookup is
         case-insensitive and ignores spaces and ``#``, so ``"Liu2+Liu4 #1"``,
-        ``"liu2+liu4 1"`` and ``"12H"`` all resolve to curve 12.
+        ``"liu2+liu4 1"`` and ``"12H"`` all resolve to curve 12.  An existing
+        :class:`Curve` is returned unchanged, so this is safe to call on any input.
 
     Returns
     -------
@@ -483,8 +774,14 @@ def curve(which: int | str) -> Curve:
 
     Raises
     ------
+    IndexError
+        If ``which`` is an integer outside ``0``..``39``.
     KeyError
-        If no curve matches ``which``.
+        If ``which`` is a string that names no curve.  The message suggests near matches.
+    TypeError
+        If ``which`` is not an integer, string or :class:`Curve`.  ``bool`` and ``float``
+        are rejected on purpose: ``curve(True)`` silently meant ``curve(1)`` before, and
+        ``curve(3.5)`` truncated.
 
     Examples
     --------
@@ -493,13 +790,26 @@ def curve(which: int | str) -> Curve:
     'Hilbert'
     >>> hilbertplot.curve("moore").index
     1
+    >>> hilbertplot.curve(hilbertplot.curve(7)).index      # idempotent
+    7
     """
+    if isinstance(which, Curve):
+        return which
     if isinstance(which, str):
         try:
             return _BY_NAME[_norm(which)]
         except KeyError:
-            raise KeyError(f"no curve named {which!r}") from None
-    return _CATALOG[spec_by_index(which).index]
+            close = _suggest(which)
+            hint = (
+                f"did you mean one of {', '.join(repr(n) for n in close)}?"
+                if close
+                else "see hilbertplot.catalog() for the forty names, or use an index 0..39"
+            )
+            raise KeyError(f"no curve named {which!r}; {hint}") from None
+    index = _check_int(which, "curve index")
+    if not 0 <= index < len(_CATALOG):
+        raise IndexError(f"curve index {index} out of range; expected 0..{len(_CATALOG) - 1}")
+    return _CATALOG[spec_by_index(index).index]
 
 
 def catalog() -> CurveList:
