@@ -8,7 +8,10 @@ version = "0.1.0"
 description = "The complete set of 40 two-dimensional Hilbert curves, and data plots on them."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+# PEP 639: a license expression plus the file, instead of the deprecated
+# `license = { text = ... }` + `License ::` classifier pair.
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Daniel Estevez", email = "kemossabee@gmail.com" }]
 keywords = [
     "hilbert-curve",
@@ -19,10 +22,14 @@ keywords = [
     "visualization",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Scientific/Engineering :: Visualization",
     "Typing :: Typed",
@@ -31,12 +38,14 @@ dependencies = ["numpy>=1.21"]
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.5"]
-dev = ["matplotlib>=3.5", "pytest>=7.0", "ruff==0.15.13"]
+# dev composes [plot] rather than restating matplotlib, so the two cannot drift.
+dev = ["hilbertplot[plot]", "pytest>=7.0", "ruff==0.15.13"]
 
 [project.urls]
 Homepage = "https://github.com/El3ssar/hilbertplot"
 Source = "https://github.com/El3ssar/hilbertplot"
 Issues = "https://github.com/El3ssar/hilbertplot/issues"
+Changelog = "https://github.com/El3ssar/hilbertplot/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/hilbertplot"]
@@ -49,11 +58,16 @@ include = [
     "/tests",
     "/examples/*.py",
     "/README.md",
+    "/CHANGELOG.md",
     "/LICENSE",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# `-W error::RuntimeWarning` turns any numpy RuntimeWarning raised during the suite into a
+# failure: an "invalid value encountered in divide" during ordinary use is a defect, not
+# noise.  (The README's own snippets are executed by tests/test_readme.py.)
+addopts = "-W error::RuntimeWarning"
 
 [tool.ruff]
 line-length = 100
@@ -62,19 +76,15 @@ line-length = 100
 extend-exclude = ["research/"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "W"]
+# RUF/SIM/C4/RET/PERF/NPY/PT are all near-zero-noise on this codebase and catch the
+# classes of drift that actually bit us: unsorted __all__, stale noqa, over-broad
+# pytest.raises, and numpy-specific footguns.  ANN/D are deliberately NOT enabled --
+# they would flag 390 sites without improving anything.
+select = ["E", "F", "I", "UP", "B", "W", "RUF", "SIM", "C4", "RET", "PERF", "NPY", "PT"]
 
 [tool.ruff.lint.per-file-ignores]
-# intentional compact hot-loop: allow one-line compound statements
-"src/hilbertplot/_core/arbitrary.py" = ["E701", "E702"]
-# the paper's parameter name `l` (ambiguous-variable-name)
-"src/hilbertplot/_data/mapping.py" = ["E741"]
-
-[tool.ruff.format]
-# arbitrary.py's `_fill` is a deliberately dense, hand-tuned hot loop; keep it
-# linted (with E701/E702 ignored above) but exempt from the formatter so its
-# compact one-liners survive.
-exclude = ["src/hilbertplot/_core/arbitrary.py"]
+# examples use en dashes in figure titles on purpose (RUF001 ambiguous-unicode)
+"examples/*.py" = ["RUF001"]
 
 [tool.semantic_release]
 # pyproject keeps a STATIC version = "0.1.0"; PSR stamps BOTH files in sync on

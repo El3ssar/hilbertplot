@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -43,6 +43,168 @@ jobs:
 
       - name: Run doctests
         run: uv run pytest --doctest-modules src/hilbertplot
+
+  numpy-only:
+    # matplotlib is an optional extra and the numpy-only path is a documented feature, so
+    # it needs its own job -- the matrix above always has matplotlib installed.
+    name: numpy-only (no matplotlib)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install the project and pytest, but NOT matplotlib
+        run: |
+          uv venv
+          uv pip install . pytest
+
+      - name: Confirm matplotlib really is absent
+        run: |
+          if uv run python -c "import matplotlib" 2>/dev/null; then
+            echo "matplotlib is installed; this job would not be testing anything"; exit 1
+          fi
+
+      - name: Every compute path works, every render path explains the extra
+        run: uv run pytest tests/test_robustness.py -k "matplotlib or compute_path" -v
+
+      - name: Import and use the library with numpy alone
+        run: |
+          uv run python -c "
+          import numpy as np, hilbertplot as hp
+          c = hp.curve(0)
+          assert c.points(4).shape == (256, 2)
+          assert c.grid(10).shape == (100, 2)
+          assert c.encode(5, 2) == (0, 3)
+          assert hp.hilbert_plot(0, np.arange(100)).image().shape == (10, 10)
+          assert hp.hilbert_plot(0, np.arange(100)).fourier().shape == (10, 10)
+          assert c.unroll(np.zeros((8, 8))).shape == (64,)
+          assert c.difference_map(3).shape == (8, 8)
+          print('numpy-only path OK')
+          "
+
+  optimized:
+    # `python -O` strips assertions. The catalog self-check must still run, so it uses
+    # `raise` rather than `assert` -- this job is what keeps that true.
+    name: python -O (assertions stripped)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install project with dev extras
+        run: uv sync --extra dev
+
+      - name: Catalog validation survives -O
+        run: |
+          uv run python -O -c "
+          import hilbertplot
+          from hilbertplot._core.catalog import _self_check
+          assert not __debug__, 'this job must run with -O'
+          _self_check()
+          print('catalog self-check ran with assertions stripped')
+          "
+
+      - name: Suite passes under -O
+        run: uv run python -O -m pytest -q
+
+  wheel:
+    name: Wheel installs and imports cleanly
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Artifacts contain the package and nothing else
+        run: |
+          python -c "
+          import glob, tarfile, zipfile, sys
+          sdist = glob.glob('dist/*.tar.gz')[0]
+          names = tarfile.open(sdist).getnames()
+          forbidden = [n for n in names
+                       if n.endswith('.pdf') or '/research/' in n or '__pycache__' in n]
+          if forbidden:
+              sys.exit(f'sdist ships files it must not: {forbidden}')
+          for required in ('README.md', 'CHANGELOG.md', 'LICENSE', 'pyproject.toml'):
+              if not any(n.endswith('/' + required) for n in names):
+                  sys.exit(f'sdist is missing {required}')
+          wheel = glob.glob('dist/*.whl')[0]
+          entries = zipfile.ZipFile(wheel).namelist()
+          if 'hilbertplot/py.typed' not in entries:
+              sys.exit('wheel is missing py.typed')
+          print(f'sdist {len(names)} entries, wheel {len(entries)} entries: OK')
+          "
+
+      - name: Install the built wheel into a clean environment and import it
+        run: |
+          uv venv /tmp/wheeltest
+          VIRTUAL_ENV=/tmp/wheeltest uv pip install dist/*.whl
+          VIRTUAL_ENV=/tmp/wheeltest uv run --no-project python -c "
+          import hilbertplot, importlib.metadata as md
+          print('installed', hilbertplot.__version__, 'exports', len(hilbertplot.__all__), 'names')
+          assert hilbertplot.curve('Moore').points(3).shape == (64, 2)
+          # __version__ and the distribution version are two literals kept in sync only by
+          # python-semantic-release stamping both; this is what catches them drifting.
+          assert hilbertplot.__version__ == md.version('hilbertplot'), (
+              f'__version__ {hilbertplot.__version__} != metadata {md.version(\"hilbertplot\")}')
+          "
+
+      - name: Metadata check
+        run: uvx twine check dist/*
+
+  floors:
+    # The matrix always resolves the newest numpy/matplotlib, so the declared floors have
+    # never been executed -- and this change set rewrote the numpy-critical paths
+    # (cumsum with dtype= and out=, frombuffer, writeable-flag handling).
+    name: Oldest supported dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.10"
+          enable-cache: true
+
+      - name: Install at the declared floors
+        run: |
+          uv venv
+          uv pip install . pytest "numpy==1.21.*" "matplotlib==3.5.*"
+
+      # --no-project throughout: a bare `uv run` re-syncs against pyproject.toml, which
+      # replaces the pinned numpy and leaves matplotlib's compiled extensions built for
+      # the old ABI ("numpy.core.multiarray failed to import"). The pins are the point of
+      # this job, so nothing here may re-resolve them.
+      - name: Report what actually resolved, and fail if the pins did not stick
+        run: |
+          uv run --no-project python -c "
+          import numpy, matplotlib
+          print('numpy', numpy.__version__, '| matplotlib', matplotlib.__version__)
+          assert numpy.__version__.startswith('1.21.'), f'numpy floor not honoured: {numpy.__version__}'
+          assert matplotlib.__version__.startswith('3.5.'), f'matplotlib floor not honoured: {matplotlib.__version__}'
+          "
+
+      - name: Run the suite against them
+        run: uv run --no-project pytest -q
 
   lint:
     name: Lint
@@ -66,3 +228,8 @@ jobs:
 
       - name: Ruff format check
         run: uv run ruff format --check .
+
+      - name: Lockfile is in sync with pyproject.toml
+        # Without this, editing a dependency and forgetting `uv lock` leaves every
+        # contributor's `uv run` silently re-locking and dirtying their tree.
+        run: uv lock --check

@@ -61,12 +61,29 @@ def test_empty_word_is_single_point():
 
 def test_is_space_filling_positive_and_negative():
     good = hp.curve(0).points(3)
-    assert is_space_filling(good, 3)
-    # Wrong order claim should fail.
-    assert not is_space_filling(good, 2)
+    assert is_space_filling(good, 8)  # a side, not an order
+    # Wrong side claim should fail.
+    assert not is_space_filling(good, 4)
+    assert not is_space_filling(good, 3)
     # A path with a repeated cell is not space-filling.
     bad = word_to_points("uu")  # goes (0,0)->(0,1)->(0,2): not a square
-    assert not is_space_filling(bad, 1)
+    assert not is_space_filling(bad, 2)
+
+
+def test_is_space_filling_accepts_arbitrary_squares():
+    """It takes a side precisely so it can check `grid(n)`, not only `points(k)`."""
+    for n in (1, 3, 7, 10, 15):
+        assert is_space_filling(hp.curve(0).grid(n), n)
+    assert not is_space_filling(hp.curve(0).grid(10), 9)
+
+
+def test_is_space_filling_rejects_a_permutation_that_is_not_a_path():
+    """Visiting every cell is not enough -- consecutive cells must be adjacent."""
+    pts = hp.curve(0).points(3)
+    shuffled = pts[np.random.default_rng(0).permutation(len(pts))]
+    assert not is_space_filling(shuffled, 8)
+    # ...unless the caller explicitly only wants the covering property.
+    assert is_space_filling(shuffled, 8, connected=False)
 
 
 def test_canonical_form_invariant_under_rotation_and_reversion():

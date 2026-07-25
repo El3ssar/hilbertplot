@@ -275,7 +275,7 @@ plot = [
 
 [package.metadata]
 requires-dist = [
-    { name = "matplotlib", marker = "extra == 'dev'", specifier = ">=3.5" },
+    { name = "hilbertplot", extras = ["plot"], marker = "extra == 'dev'" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=1.21" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },

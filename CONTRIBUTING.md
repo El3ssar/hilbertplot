@@ -70,5 +70,37 @@ uv run ruff check --fix .
 uv run ruff format .
 ```
 
+CI runs three more jobs you can reproduce locally when you touch the relevant area:
+
+```bash
+# matplotlib is an optional extra; the numpy-only path must keep working.
+uv venv /tmp/nomp && VIRTUAL_ENV=/tmp/nomp uv pip install . pytest
+VIRTUAL_ENV=/tmp/nomp uv run --no-project pytest
+
+# `python -O` strips asserts, so shipped-data validation must use `raise`.
+uv run python -O -m pytest
+
+# The built artifacts must contain the package and nothing else.
+uv build && uvx twine check dist/*
+```
+
+## What the tests are protecting
+
+Beyond the usual unit tests, a few suites encode invariants that have actually been
+broken before — read these before changing the code they cover:
+
+- `tests/test_performance.py` asserts *ratios*, not wall-clock, so it means the same on a
+  laptop and a throttled runner. It exists because `grid()` once bottomed out its recursion
+  once per cell, making the default render path ~17× slower than the power-of-two path.
+- `tests/test_arbitrary.py` checks that every entry of `SMALLEST_FAILURE` really is the
+  smallest square at which that curve's construction breaks. The number goes straight into
+  a user-facing error, and three entries were wrong before the test existed.
+- `tests/test_indexing.py` checks `encode`/`decode` against the materialised curve for all
+  forty curves, exhaustively at small orders.
+- `tests/test_readme.py` executes every `python` block in `README.md`, so the front page
+  cannot drift from the API.
+- `-W error::RuntimeWarning` is on by default: a numpy warning during ordinary use is a
+  defect, not noise.
+
 Open a PR against `main` with a Conventional-Commit title, make sure CI is green,
 and you're done — the release machinery takes it from there.

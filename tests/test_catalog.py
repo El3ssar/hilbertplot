@@ -24,7 +24,7 @@ def test_catalog_has_forty_curves():
 @pytest.mark.parametrize("order", [1, 2, 3, 4, 5, 6])
 def test_every_curve_is_space_filling(order):
     for c in hp.catalog():
-        assert is_space_filling(c.points(order), order), (
+        assert is_space_filling(c.points(order), 2**order), (
             f"{c.name} not space-filling at order {order}"
         )
 
@@ -122,7 +122,7 @@ def _endpoint_type(cell, side):
     return ("interior", "edge", "corner")[on]
 
 
-@pytest.mark.parametrize("index,expected", _TABLE3_ENDPOINTS.items())
+@pytest.mark.parametrize(("index", "expected"), _TABLE3_ENDPOINTS.items())
 def test_entry_exit_types_match_table3(index, expected):
     order = 4
     side = 2**order
@@ -141,7 +141,7 @@ def test_get_by_index_and_name():
 
 
 def test_get_invalid():
-    with pytest.raises((KeyError, IndexError)):
+    with pytest.raises(IndexError):
         hp.curve(40)
     with pytest.raises(KeyError):
         hp.curve("nope")
@@ -171,10 +171,13 @@ def test_rule_smoke():
 # --------------------------------------------------------------------------
 # Presentation: name-only repr and CurveList table
 # --------------------------------------------------------------------------
-def test_curve_repr_is_just_the_name():
-    assert repr(hp.curve(0)) == "Hilbert"
+def test_curve_str_is_the_name_and_repr_is_unambiguous():
+    # str() stays friendly for f-strings and print(); repr() identifies the curve fully.
+    assert str(hp.curve(0)) == "Hilbert"
     assert str(hp.curve(1)) == "Moore"
-    assert repr(hp.curve(12)) == "Liu2+Liu4 #1"
+    assert str(hp.curve(12)) == "Liu2+Liu4 #1"
+    assert repr(hp.curve(0)) == "<Curve 0H Hilbert (proper)>"
+    assert repr(hp.curve(12)) == "<Curve 12H Liu2+Liu4 #1 (inhomogeneous)>"
 
 
 def test_curvelist_is_a_list_that_prints_as_a_table():
@@ -182,8 +185,10 @@ def test_curvelist_is_a_list_that_prints_as_a_table():
     assert isinstance(curves, list)  # still a real list
     assert curves[0] == hp.curve(0)
     text = repr(curves)
-    assert "name" in text and "kind" in text and "closed" in text
-    assert "Hilbert" in text and "Moore" in text
+    for heading in ("name", "kind", "closed"):
+        assert heading in text
+    for name in ("Hilbert", "Moore"):
+        assert name in text
     # closed flag shows for Moore (closed) but not Hilbert
     assert "yes" in text
 

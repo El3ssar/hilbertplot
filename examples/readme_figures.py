@@ -61,7 +61,7 @@ def main() -> None:
 
     # 1) the curve itself, colour-graded along the traversal
     fig, ax = plt.subplots(figsize=(5.2, 5.2))
-    hp.curve(0).plot(4, ax=ax, cmap="viridis", title="The Hilbert curve (curve 0), order 4")
+    hp.curve(0).draw(4, ax=ax, cmap="viridis", title="The Hilbert curve (curve 0), order 4")
     save(fig, "curve.png")
 
     # 2) the same data laid on two different curves

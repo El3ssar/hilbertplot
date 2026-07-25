@@ -35,7 +35,7 @@ def main() -> None:
         title="All 40 two-dimensional Hilbert curves (order 3)",
         save=os.path.join(OUT, "all40.png"),
     )
-    hp.curve(0).save(6, os.path.join(OUT, "hilbert_order6.png"))
+    hp.curve(0).save(os.path.join(OUT, "hilbert_order6.png"), 6)
     print(f"wrote plots to {OUT}")
 
 
