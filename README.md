@@ -14,6 +14,11 @@ proved by Estevez-Rams et al., *"Hilbert curves in two dimensions"*, Rev. Cub. F
 9 (2017). `hilbertplot` implements all forty with pure-numpy generation and uses them to lay
 long 1-D vectors onto 2-D images.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/El3ssar/hilbertplot/main/assets/curve.png"
+       width="440" alt="The Hilbert curve at order 4, drawn as a colour-graded path">
+</p>
+
 ## Install
 
 ```bash
@@ -26,8 +31,8 @@ pip install "hilbertplot[plot]"   # drop [plot] for a numpy-only core (no matplo
 import hilbertplot
 
 c = hilbertplot.curve(0)     # by index 0–39, by name ("Moore"), or by symbol
-c.show(6)                    # draw order 6 in a window
-pts = c.points(6)            # (4096, 2) integer lattice points, in visit order
+c.show(4)                    # draw order 4 in a window
+pts = c.points(4)            # (256, 2) integer lattice points, in visit order
 ```
 
 The forty curves come in named groups — `hilbertplot.proper()`, `.improper()`,
@@ -41,22 +46,41 @@ Walk a curve and drop `data[i]` on the *i*-th cell it visits: a locality-preserv
 ```python
 import numpy as np, hilbertplot
 
-plot = hilbertplot.hilbert_plot(0, np.arange(10_000))
+plot = hilbertplot.hilbert_plot(0, np.arange(1, 257))
 plot.show("viridis")          # a matplotlib colormap name, or a list of colours to blend
-plot.show(granularity=4)      # block-mean coarsening that makes periodic structure pop
 ```
 
-## More
+![The same data laid on two different curves](https://raw.githubusercontent.com/El3ssar/hilbertplot/main/assets/data_two_curves.png)
 
-A `HilbertPlot` (and each `Curve`) can do a bit more:
+*The same numbers on curve 0 and curve 32 — one reason to have all forty.*
 
-- `plot.show(difference=True)` — overlay where the curve breaks locality
-- `plot.show(fourier=True)` — a 2-D Fourier map that surfaces hidden periodic structure
+## Seeing more than the data
+
+**Coarse-grain it.** `plot.show(granularity=4)` replaces each block of values by its mean.
+Below, a binary sequence interleaves stretches of two periodic patterns with identical
+density — invisible in the faithful plot, obvious once averaged.
+
+![Periodic regions revealed by coarse-graining](https://raw.githubusercontent.com/El3ssar/hilbertplot/main/assets/granularity.png)
+
+**Find where locality breaks.** `plot.show(difference=True)` marks the cells that are
+neighbours in the plane but far apart along the curve. A higher threshold keeps only the
+worst offenders.
+
+![The difference map at two thresholds](https://raw.githubusercontent.com/El3ssar/hilbertplot/main/assets/difference.png)
+
+**Transform it.** `plot.show(fourier=True)` renders the 2-D Fourier map, exposing periodic
+and self-similar structure — here, a Thue–Morse sequence.
+
+![A Thue–Morse sequence and its Fourier map](https://raw.githubusercontent.com/El3ssar/hilbertplot/main/assets/thue_morse.png)
+
+## Also
+
 - `curve.unroll(img)` — read a 2-D array back into 1-D, in curve order
 - `curve.grid(n)` — the eight `generalizing()` curves tile **any** `n×n` square, not just `2ᵏ`
 
-Runnable demos for all of these live in [`examples/`](examples/); the arbitrary-square
-classification and its proofs are in `research/quasisquares/`.
+Every figure above is reproducible: `python examples/readme_figures.py`. More runnable
+demos are in [`examples/`](examples/); the arbitrary-square classification and its proofs
+are in `research/quasisquares/`.
 
 ## License
 
