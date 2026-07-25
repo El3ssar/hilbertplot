@@ -11,9 +11,8 @@ new entries are inserted at the marker.
 
 ## v0.1.0 (2026-07-25)
 
-- Initial Release
-
-## [Unreleased]
+First public release — the complete set of 40 two-dimensional Hilbert curves,
+with fast numpy generation and data-visualisation tooling.
 
 ### Added
 - The complete set of **40** two-dimensional Hilbert curves (Estevez-Rams et al., 2017):
