@@ -1,0 +1,520 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{remark}{Remark}
+
+\newcommand{\LL}{\mathrm{LL}}
+\newcommand{\UL}{\mathrm{UL}}
+\newcommand{\UR}{\mathrm{UR}}
+\newcommand{\LR}{\mathrm{LR}}
+\newcommand{\Fill}{\textsf{fill}}
+\newcommand{\Dfour}{D_4}
+\newcommand{\col}{\chi}
+
+\title{\bf Arbitrary--size generalization of the forty two--dimensional Hilbert
+curves:\\ a coloring criterion for approximately--even partition}
+\author{HilbertPlots project (\texttt{hilbertplot})}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Estevez--Rams \emph{et al.} proved that there are exactly forty Hilbert--type
+space--filling curves of the plane (up to rotation, reflection and reversion): twelve
+homogeneous and twenty--eight inhomogeneous. The standard recursive construction only
+produces curves on grids of side $2^k$. Wu and Chang generalized the \emph{single}
+standard Hilbert curve to arbitrary square (and rectangular) sides through an
+\emph{approximately--even partition} (AEP), using a size--independent \emph{swap rule}
+to preserve connectivity at odd sizes. We ask, for each of the forty curves, whether the
+AEP admits a swap rule that turns it into a single connected space--filling path on
+\emph{every} $n\times n$ square. We give a complete answer: \textbf{exactly eight of the
+forty curves generalize to arbitrary squares}, and the remaining thirty--two are provably
+obstructed. The whole classification rests on one elementary tool---a checkerboard
+\emph{coloring lemma}---which simultaneously (i) certifies feasibility of the eight, and
+(ii) supplies the impossibility proofs for the thirty--two. We develop the feasible case
+in full for the Hilbert curve and the infeasible case in full for the curve we label
+\emph{Improper4}, then treat the remaining curves by the structural mechanism that governs
+them. We close with the quasi--square ($|w-h|=1$) situation and the road to rectangles.
+All feasibility claims are verified computationally on $n=1..40$ and all impossibility
+claims by finite exhaustion at an explicit witness size, using the shared engine
+\texttt{research/aep.py}.
+\end{abstract}
+
+\section{Introduction}
+
+A \emph{Hilbert--type curve} of order $k$ visits every cell of a $2^k\times 2^k$ grid
+exactly once, moving between $4$--adjacent cells, and is built recursively: the grid is
+split into four equal quadrants (lower--left $\LL$, upper--left $\UL$, upper--right $\UR$,
+lower--right $\LR$, visited in that order), and into each quadrant a scaled, reoriented
+copy of an order--$(k-1)$ curve is placed so that consecutive quadrants join. Estevez--Rams
+\emph{et al.}~\cite{estevez2017} showed that, allowing the four quadrant copies to be
+different curves and to carry any symmetry of the square, there are exactly $40$ such
+curves, and encoded each by four \emph{quadrant rules}. In the notation of the
+\texttt{hilbertplot} library, curve $\nu\in\{0,\dots,39\}$ is given by
+\[
+   \mathrm{rule}(\nu)=\big[(b_i,\,m_i,\,r_i)\big]_{i\in\{\LL,\UL,\UR,\LR\}},
+\]
+where $b_i$ is the \emph{kernel} (index of the curve placed in quadrant $i$), $m_i\in \Dfour$
+is a symmetry of the square (a \emph{morphism}), and $r_i\in\{0,1\}$ is a reversion. Curve
+$0$ is Hilbert's original curve; curves $1$--$5$ are the other homogeneous \emph{proper}
+curves (Moore, Liu$1$--Liu$4$); curves $6$--$11$ the homogeneous \emph{improper} curves
+Improper$1$--Improper$6$; curves $12$--$39$ the inhomogeneous curves.
+
+The recursion doubles the side at each step, so it only reaches sides $2^k$. Wu and
+Chang~\cite{wuchang2012} removed this restriction for the \emph{standard Hilbert curve}
+by splitting a side $d$ approximately evenly,
+\[
+   d \;\longmapsto\; (d_1,d_2)=(\lfloor d/2\rfloor,\ \lceil d/2\rceil),\qquad |d_1-d_2|\le 1,
+\]
+recursing into four now--unequally--sized sub--regions, and bottoming out at the primitive
+tiles $1\times1$, $1\times2$, $2\times1$, $2\times2$. At odd sizes the na\"ive split breaks
+connectivity; they repair it with a per--orientation \emph{swap rule} that forces a chosen
+half to be even. Their four orientations $A,B,C,D$ are precisely the $\Dfour$ subgroup
+$\{e,\ \delta_o,\ \delta_f,\ \delta_a\}$ (identity, main--diagonal reflection, $180^\circ$
+rotation, anti--diagonal reflection).
+
+\paragraph{Question.} For \emph{which} of the forty curves does the AEP construction admit
+a swap rule making the curve a single connected Hamiltonian path on every square? And when
+it does not, \emph{why}?
+
+\paragraph{Contributions.}
+\begin{enumerate}[leftmargin=*]
+\item A construction engine (Section~\ref{sec:engine}) that runs the AEP for \emph{any} of
+the forty curves, driven by the catalog quadrant rules and the full group $\Dfour$
+(the non--Hilbert curves need the four orientations outside Wu--Chang's subgroup).
+\item A single elementary criterion---the coloring lemma (Lemma~\ref{lem:color})---from
+which feasibility and impossibility both follow.
+\item A full feasibility proof for the Hilbert curve (Section~\ref{sec:hilbert}) and a full
+impossibility proof for Improper4 (Section~\ref{sec:improper4}).
+\item The complete classification (Theorem~\ref{thm:main}): the eight feasible curves are
+exactly those whose kernels are all \emph{corner--anchored} (Hilbert or Liu$3$) and whose
+morphisms form a \emph{parity--free--junction template}; the thirty--two infeasible curves
+fall under four impossibility mechanisms (Section~\ref{sec:mechanisms}).
+\item Quasi--square results (Section~\ref{sec:quasi}) and open problems, including
+rectangles and a curious appearance of the Jacobsthal numbers for Moore.
+\end{enumerate}
+
+\section{The construction and the swap rule}\label{sec:engine}
+
+\paragraph{Regions, orientations, canonical frame.} A \emph{region} is an axis--aligned
+rectangle of integer cells $[x_0,x_0+w)\times[y_0,y_0+h)$, of \emph{width} $w$ and
+\emph{height} $h$. An \emph{orientation} is an element $M\in\Dfour$, represented by a
+$2\times2$ integer matrix acting on cell coordinates. We build each curve in its
+\emph{canonical frame} (orientation $e$) and place cells through $M$; a sub--curve inherits
+orientation $M\!\cdot\! m_i$ from the parent's $M$ and the quadrant morphism $m_i$. We call
+$M$ \emph{transposing} if it exchanges the two axes (the four orientations
+$\delta_g,\delta_x,\delta_o,\delta_a$); equivalently $M_{11}=0$.
+
+\paragraph{Swap rule.} When a curve is partitioned, its canonical width $W_c$ and height
+$H_c$ (which equal $(w,h)$ if $M$ is non--transposing, else $(h,w)$) are split
+approximately evenly. If a side is \emph{odd} there are two ways to place the even half; a
+\emph{swap rule} chooses one, per axis:
+\[
+   \mathrm{sw},\ \mathrm{sh}\ \in\ \{\textsf{first},\ \textsf{second},\ \textsf{none}\},
+\]
+where \textsf{first} forces the low half $d_1$ even, \textsf{second} the high half $d_2$
+even, and \textsf{none} leaves $d_1=\lfloor d/2\rfloor$. Crucially, a swap rule is a
+function
+\[
+   \rho:\ (\nu,\,M)\ \longmapsto\ (\mathrm{sw},\mathrm{sh})
+\]
+of the \emph{partition node} $(\nu,M)$ alone; \textbf{it may not depend on the region size
+$n$}. This is the entire freedom available: a curve is \emph{feasible on squares} iff some
+single $\rho$ makes the resulting path Hamiltonian on every $n\times n$.
+
+\paragraph{Primitives.} A region with $\max(w,h)\le 2$ is a base tile. The four primitives
+$1\times1,\ 1\times2,\ 2\times1,\ 2\times2$ are laid down in the visiting order dictated by
+the orientation; the $1\times2$ (wide) admits only orientations $\{A,C\}$ and the
+$2\times1$ (tall) only $\{B,D\}$, a fact we will use for quasi--squares.
+
+\paragraph{Reference implementation.} All statements below are checked with the engine
+\texttt{research/aep.py}: \texttt{fill(index,x,y,w,h,M,rev,swap)} emits the ordered cell
+list; \texttt{validate(cells,w,h)} returns \texttt{"OK"} iff the list is a Hamiltonian path
+(right count, all distinct, tight bounding box, consecutive cells $4$--adjacent), else the
+first failure. We write $S_n(\nu)$ for the set of swap rules $\rho$ under which
+$\Fill(\nu,\cdot)$ is valid on the $n\times n$ square; feasibility on squares is
+$\bigcap_{n\ge1}S_n(\nu)\neq\varnothing$.
+
+\section{The coloring lemma}\label{sec:color}
+
+Color each cell by its parity, $\col(x,y)=(x+y)\bmod 2$. Two $4$--adjacent cells have
+opposite colors, so any path alternates colors.
+
+\begin{lemma}[Coloring]\label{lem:color}
+Let $P$ be a Hamiltonian path on a $W\times H$ grid ($N=WH$ cells), with endpoints $p$
+(entry) and $q$ (exit). Then
+\[
+   \col(p)=\col(q)\ \Longleftrightarrow\ N\ \text{is odd}.
+\]
+Consequently, for a corner--to--corner path the corner colors must obey this parity. In
+particular, a path from a corner on the bottom edge to another corner on the bottom edge of
+a $W\times H$ grid exists only if
+\[
+   \boxed{\,W\ \text{is even}\ \ \text{or}\ \ H\ \text{is odd}.}\tag{$\star$}
+\]
+\end{lemma}
+
+\begin{proof}
+$P$ has $N$ vertices and alternates colors, so its colors read $c,\bar c,c,\dots$. The
+$1$st and $N$th vertices share a color iff $N$ is odd. The two bottom corners are $(0,0)$
+and $(W-1,0)$, with colors $0$ and $(W-1)\bmod 2$; they are equal iff $W$ is odd. By the
+first part such a path needs $N=WH$ odd, i.e.\ $W$ and $H$ both odd. Contrapositively the
+path is \emph{impossible} exactly when $W$ is odd and $H$ is even, which is the negation of
+$(\star)$.
+\end{proof}
+
+Condition $(\star)$ is \emph{necessary} for a bottom--corner--to--bottom--corner path; it
+is the exact obstruction the AEP must avoid. By transposition, a left--edge corner path
+$(0,0)\!\to\!(0,H-1)$ (orientation $B$/$D$) needs the dual condition ``$H$ even or $W$
+odd''. These conditions are the hinge of the whole paper: Section~\ref{sec:hilbert} shows a
+swap rule that satisfies them for Hilbert at every square, and Section~\ref{sec:improper4}
+shows a curve for which they cannot all be met.
+
+\section{Feasible in full: the Hilbert curve}\label{sec:hilbert}
+
+Curve $0$ has $\mathrm{rule}(0)=[(0,\delta_o,0),(0,e,0),(0,e,0),(0,\delta_a,0)]$: the four
+quadrants are Hilbert curves in orientations $B,e,e,D$. Splitting an $n\times n$ square in
+orientation $e$ into $(W_c,H_c)=(n,n)$, $W_c\!\to\!(W_1,W_2)$, $H_c\!\to\!(H_1,H_2)$, the
+four blocks are:
+\[
+\begin{array}{llll}
+\LL: W_1\times H_1,\ \text{orient. }B, & \text{path }(0,0)\!\to\!(0,H_1\!-\!1)\ \text{(left edge)};\\
+\UL: W_1\times H_2,\ \text{orient. }e, & \text{path }(0,H_1)\!\to\!(W_1\!-\!1,H_1)\ \text{(bottom corners)};\\
+\UR: W_2\times H_2,\ \text{orient. }e, & \text{path }(W_1,H_1)\!\to\!(W_c\!-\!1,H_1)\ \text{(bottom corners)};\\
+\LR: W_2\times H_1,\ \text{orient. }D, & \text{path }(W_c\!-\!1,H_1\!-\!1)\!\to\!(W_c\!-\!1,0)\ \text{(right edge)}.
+\end{array}
+\]
+
+\begin{lemma}[Junction identities]\label{lem:junc0}
+If each of the four blocks realizes the prescribed corner path, the three internal
+junctions are $4$--adjacent \emph{unconditionally}:
+$\LL$ exit $(0,H_1\!-\!1)\!\to\!\UL$ entry $(0,H_1)$;
+$\UL$ exit $(W_1\!-\!1,H_1)\!\to\!\UR$ entry $(W_1,H_1)$;
+$\UR$ exit $(W_c\!-\!1,H_1)\!\to\!\LR$ entry $(W_c\!-\!1,H_1\!-\!1)$;
+and the global endpoints are $(0,0)$ and $(W_c\!-\!1,0)$, two bottom corners. Hence
+$\Fill(0,\cdot)$ is valid iff every block realizes its corner path.\qed
+\end{lemma}
+
+By Lemma~\ref{lem:junc0} the only thing that can fail is a block's own corner path, and by
+Lemma~\ref{lem:color} that is governed by $(\star)$:
+\[
+\LL(B):\ H_1\ \text{even or}\ W_1\ \text{odd};\quad
+\LR(D):\ H_1\ \text{even or}\ W_2\ \text{odd};\quad
+\UL,\UR(e):\ W_i\ \text{even or}\ H_2\ \text{odd}.
+\]
+
+\begin{theorem}[Hilbert feasibility]\label{thm:hilbert}
+With $\mathrm{sh}=\textsf{first}$ (force $H_1$ even) and \emph{any} $\mathrm{sw}$, curve $0$
+is a valid Hamiltonian path on every $n\times n$ square. Verified for $n=1..40$ and matching
+the standard $2^k$ Hilbert curve up to symmetry.
+\end{theorem}
+
+\begin{proof}
+Induct on $n$; the base cases $n\le 2$ are primitives. For $n\ge 3$ set $H_1$ even
+($\mathrm{sh}=\textsf{first}$; possible whenever $n\ge 3$ because if $\lfloor n/2\rfloor$ is
+odd we swap, making $H_1=\lceil n/2\rceil$ even---and for even $n$ with $n\equiv 2\pmod 4$
+both halves equal the odd number $n/2$, handled below). Two cases.
+
+\emph{$n$ odd.} Then $H_2=n-H_1$ is odd, so $\UL,\UR$ satisfy $(\star)$ via ``$H_2$ odd'';
+$\LL,\LR$ satisfy it via ``$H_1$ even''. All four blocks realize their corner paths, so by
+Lemma~\ref{lem:junc0} the path is valid, and the sub--blocks (of sides in
+$\{\lfloor n/2\rfloor,\lceil n/2\rceil\}$) are again squares or quasi--squares handled by
+the induction.
+
+\emph{$n$ even.} Then $H_1=H_2=W_1=W_2=n/2$. If $n\equiv 0\pmod4$, $n/2$ is even and every
+disjunct ``$\cdot$ even'' holds. If $n\equiv 2\pmod4$, $n/2$ is odd, so $H_1$ is odd; but
+then $W_1=W_2=n/2$ is odd, so $\LL,\LR$ hold via ``$W_i$ odd'' and $\UL,\UR$ hold via
+``$H_2$ odd''. In all sub--cases the four corner paths exist.
+
+Thus every block realizes its corner path at every $n$, and Lemma~\ref{lem:junc0} closes the
+induction. The width rule $\mathrm{sw}$ never enters the disjunctions that were used, which
+is why it is \emph{free}. Computationally, $\mathrm{sw}\in\{\textsf{first},\textsf{second},
+\textsf{none}\}$ with $\mathrm{sh}=\textsf{first}$ all give \texttt{"OK"} on $n=1..40$.
+\end{proof}
+
+\begin{remark}
+The asymmetry ``$\mathrm{sh}$ matters, $\mathrm{sw}$ is free'' is not an accident of
+convention: the two edge--blocks $\LL,\LR$ (orientations $B,D$) both put their corner path
+on a \emph{vertical} edge, so both are governed by the \emph{height} split $H_1$; forcing
+$H_1$ even discharges both at once, for any width split.
+\end{remark}
+
+\section{The eight feasible curves}\label{sec:feasible}
+
+The Hilbert argument is a template: a curve is feasible iff (a) every block it recurses into
+is itself feasible \emph{in the shape it is handed}, and (b) the junction identities of
+Lemma~\ref{lem:junc0}--type hold for its own morphism pattern. Running the exhaustive swap
+search over $n=1..40$ (all $9$ orientation--independent rules, layered bottom--up over the
+kernels' rules) yields exactly eight feasible curves:
+
+\begin{center}
+\begin{tabular}{clll}
+\toprule
+$\nu$ & name & kernels & swap rule (over $0:\mathrm{sh}=\textsf{first}$, $4:(\textsf{second},\textsf{first})$)\\
+\midrule
+$0$ & Hilbert & $\{0\}$ & $\mathrm{sh}=\textsf{first}$, $\mathrm{sw}$ free\\
+$3$ & Liu$2$ & $\{0\}$ & $\mathrm{sh}=\textsf{second}$, $\mathrm{sw}$ free\\
+$4$ & Liu$3$ & $\{0\}$ & $(\textsf{second},\textsf{first})$\\
+$5$ & Liu$4$ & $\{0\}$ & $(\textsf{first},\textsf{second})$\\
+$24$ & Hilbert+Liu$3$\,\#7 & $\{0,4\}$ & $(\textsf{first},\textsf{second})$\\
+$29$ & Hilbert+Liu$3$\,\#12 & $\{0,4\}$ & $(\textsf{second},\textsf{first})$\\
+$30$ & Hilbert+Liu$3$\,\#13 & $\{0,4\}$ & $(\textsf{second},\textsf{first})$\\
+$31$ & Hilbert+Liu$3$\,\#14 & $\{0,4\}$ & $(\textsf{first},\textsf{second})$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Two structural facts explain the list, and are proved exactly as Hilbert was (each reduces
+to $(\star)$ on the block corner paths under the curve's own morphisms):
+
+\begin{proposition}[Corner--anchored kernels]\label{prop:kernels}
+The only single--kernel curves that are feasible are $0,3,4,5$, and among all kernels only
+$0$ (Hilbert) and $4$ (Liu$3$) ever appear \emph{as sub--blocks} of a feasible curve. We
+call $0$ and $4$ \emph{corner--anchored}: each fills every parity--admissible rectangle it
+can be handed. Hilbert fills any rectangle satisfying $(\star)$ under $\mathrm{sh}=\textsf{first}$;
+Liu$3$ fills only \emph{odd$\times$odd squares} (its exit is interior, so it can only be
+handed a block whose entry/exit corner colors coincide, i.e.\ odd area, and its edge
+geometry forces a square).
+\end{proposition}
+
+\begin{proposition}[Parity--free--junction templates]\label{prop:templates}
+Curves $3,4,5$ are the three non--Hilbert morphism patterns whose block junctions close for
+some fixed $(\mathrm{sw},\mathrm{sh})$; their patterns differ from Hilbert only in which
+axis carries the forced--even half ($\mathrm{sh}=\textsf{second}$ for Liu$2$;
+$(\textsf{second},\textsf{first})$ for Liu$3$; $(\textsf{first},\textsf{second})$ for
+Liu$4$). The three feasible composites $24,29,30,31$ are exactly the templates of
+$5,4,0,3$ with the last--visited Hilbert quadrant replaced by a Liu$3$ block to which the
+template hands an odd$\times$odd square---the one shape Liu$3$ can fill. No other morphism
+assignment closes all junctions for a size--independent rule.
+\end{proposition}
+
+Propositions~\ref{prop:kernels}--\ref{prop:templates} are the content of the classification
+theorem's ``if'' direction; each is a finite check plus the $(\star)$ bookkeeping of
+Section~\ref{sec:hilbert}, carried out per template in the per--curve reports
+\texttt{research/reports/curve\_\{0,3,4,5,24,29,30,31\}.md}.
+
+\section{Infeasible in full: Improper4}\label{sec:improper4}
+
+Curve $9$ (Improper4) has kernels $\{5\}$ and all four morphisms \emph{transposing}
+(each of the form $\big(\begin{smallmatrix}0&\mp1\\ \pm1&0\end{smallmatrix}\big)$). We prove
+it admits \emph{no} swap rule---orientation--independent or per--orientation, over the whole
+rule space---valid on every square. A single square, $5\times5$, is already impossible.
+
+\begin{lemma}[A forbidden tile]\label{lem:9A}
+In each of curve $9$'s four (transposing) quadrant frames, the kernel curve $5$ (Liu$4$)
+has \emph{no} valid Hamiltonian path on a $2\times3$ region, for any swap rule, whereas it
+\emph{does} have one on the transposed $3\times2$ region.
+\end{lemma}
+\begin{proof}
+A $2\times3$ region reaches exactly one partition node (its sub--boxes are all $\le2$, hence
+dominoes), so ``any swap rule'' is the nine values of that node. Exhaustive evaluation gives
+$0/9$ valid for $2\times3$ and $6/9$ valid for $3\times2$, in every one of the four
+morphism frames. (The underlying reason is $(\star)$: Liu$4$'s edge--to--edge geometry
+forces, in these frames, an entry and exit of \emph{equal} color on a region of \emph{even}
+area---forbidden by Lemma~\ref{lem:color}.)
+\end{proof}
+
+\begin{lemma}[The $5\times5$ pinwheel always contains a $2\times3$]\label{lem:9B}
+The only approximately--even split of $5$ is $5=2+3$; hence $\{W_1,W_2\}=\{H_1,H_2\}=\{2,3\}$
+regardless of the swap value at the root node $(9,e)$ (the swap merely orders each pair).
+For each of the four parity assignments $(W_1,H_1)\in\{2,3\}^2$, exactly one of the four
+pinwheel blocks $\LL=W_1\!\times\!H_1$, $\UL=W_1\!\times\!H_2$, $\UR=W_2\!\times\!H_2$,
+$\LR=W_2\!\times\!H_1$ has shape $2\times3$, and it always lands on a quadrant whose
+(transposing) morphism is one of the four forbidden frames of Lemma~\ref{lem:9A}.
+\end{lemma}
+\begin{proof}
+Direct enumeration of the four cases (verified):
+\[
+\begin{array}{c|cccc|c}
+(W_1,H_1) & \LL & \UL & \UR & \LR & \text{the }2\times3\\\hline
+(2,2) & 2\!\times\!2 & 2\!\times\!3 & 3\!\times\!3 & 3\!\times\!2 & \UL\\
+(2,3) & 2\!\times\!3 & 2\!\times\!2 & 3\!\times\!2 & 3\!\times\!3 & \LL\\
+(3,2) & 3\!\times\!2 & 3\!\times\!3 & 2\!\times\!2 & 2\!\times\!3 & \LR\\
+(3,3) & 3\!\times\!3 & 3\!\times\!2 & 2\!\times\!3 & 2\!\times\!2 & \UR\\
+\end{array}
+\]
+In each row the $2\times3$ block sits on a quadrant carrying a forbidden morphism, so by
+Lemma~\ref{lem:9A} that block cannot be filled.
+\end{proof}
+
+\begin{theorem}[Improper4 impossibility]\label{thm:9}
+Curve $9$ has no size--independent swap rule valid on all squares; it already fails on
+$5\times5$ for every one of the $9^4$ rules over the four partition nodes that $5\times5$
+exercises.
+\end{theorem}
+\begin{proof}
+By Lemmas~\ref{lem:9A}--\ref{lem:9B}, whichever way the root splits $5=2+3$, some quadrant
+is a $2\times3$ block on a forbidden frame, which no swap value can fill; hence
+$S_5(9)=\varnothing$. Since feasibility requires validity at \emph{every} square, in
+particular at $n=5$, no rule works. The finite exhaustion ($9^4=6561$ rules, all invalid at
+$5\times5$) confirms $S_5(9)=\varnothing$ independently.
+\end{proof}
+
+\section{The thirty--two infeasible curves: four mechanisms}\label{sec:mechanisms}
+
+Every infeasible curve fails through one of four mechanisms, each an instance of the
+coloring/junction obstruction. In every case the impossibility is certified by a finite
+exhaustion at an explicit witness size $n^\ast$ (a single square with $S_{n^\ast}=\varnothing$
+suffices), and explained structurally as below. We state each mechanism generally rather
+than curve by curve; the witness sizes and per--curve details are in the reports and
+Table~\ref{tab:class}.
+
+\begin{description}[leftmargin=1em]
+\item[(M1) Homogeneous morphisms.] If a curve's four morphisms are \emph{all} transposing
+or \emph{all} non--transposing, then at an odd size the forced odd$\times$even sub--block is
+handed to a kernel in a frame that cannot route both parities: the required corner path
+violates $(\star)$. Improper4 (Section~\ref{sec:improper4}) is the archetype (all
+transposing, witness $5\times5$); Liu$1$ (curve $2$, morphisms $(\delta_f,e,e,\delta_f)$,
+all non--transposing) is the dual, with witness $7\times7$ ($S_7=\varnothing$). Curves:
+$1,2,9,19,22,26,27,32,34$.
+
+\item[(M2) Near--cyclic Moore kernel.] Moore (curve $1$) is a closed curve: its two
+endpoints are $4$--adjacent, hence \emph{opposite} colors. Wherever a Moore block is forced
+onto a region of \emph{odd} area, Lemma~\ref{lem:color} demands \emph{equal}--color
+endpoints, a contradiction. Every curve containing a Moore kernel inherits this obstruction:
+$1$ and $32$--$39$. (For the composite $39$ the obstruction first bites at $n\equiv2\pmod4$,
+when the recursion hands Moore an $(n/2)\times(n/2)$ block with $n/2$ odd; see
+Section~\ref{sec:open}.)
+
+\item[(M3) Edge--to--edge Liu$4$ drift.] Liu$4$ (curve $5$) is feasible standalone but
+\emph{never survives nesting}: as a sub--block its junction cell lies on an edge whose
+position moves with the block's size parity. Two square sizes then demand \emph{opposite}
+split parities at the \emph{same} partition node; since $\rho$ is size--independent, no rule
+serves both. This kills all of $6$--$17$ (e.g.\ Improper3 needs $H_1$ even at $n=3$ but
+$H_1$ odd at $n=7$). This is why $5$ appears in no feasible curve as a sub--block, in
+contrast to the corner--anchored $0,4$ (Proposition~\ref{prop:kernels}).
+
+\item[(M4) Mis--routing of good kernels.] Even with only the good kernels $\{0,4\}$, a
+morphism pattern can \emph{route} a Hilbert or Liu$3$ block onto a shape it cannot fill: an
+odd$\times$even near--square (Hilbert needs $(\star)$; Liu$3$ needs an odd$\times$odd
+\emph{square}). E.g.\ curve $18$ splits $13=6+7$ and forces a $7\times6$ block that neither
+kernel can fill (witness $n=13$, exhaustive). Curves: $18,20,21,23,25,28$ (and the
+two--witness parity conflicts of type M3 that recur among the $\{0,4\}$ composites).
+\end{description}
+
+Mechanisms (M1)--(M4) are disjoint in cause though a curve may exhibit more than one; a
+single certified witness suffices for infeasibility. The classification is complete because
+every curve is either one of the eight of Section~\ref{sec:feasible} or carries a certified
+witness of one of (M1)--(M4).
+
+\begin{theorem}[Classification]\label{thm:main}
+Of the forty two--dimensional Hilbert curves, exactly eight---$0,3,4,5,24,29,30,31$---admit
+a size--independent AEP swap rule that yields a connected space--filling path on every
+$n\times n$ square (verified $n=1..40$, matching the $2^k$ curve). These are precisely the
+curves all of whose kernels are corner--anchored ($0$ or $4$) and whose morphisms form one
+of the four parity--free--junction templates (Propositions~\ref{prop:kernels}--\ref{prop:templates}).
+The remaining thirty--two are infeasible, each by a finite witness under one of the
+mechanisms (M1)--(M4).
+\end{theorem}
+
+\section{Quasi--squares}\label{sec:quasi}
+
+For $|w-h|=1$ the picture is governed by the primitive constraint: a $1\times2$ tile
+(orientation class $\{A,C\}$) is \emph{wide}, a $2\times1$ tile ($\{B,D\}$) is \emph{tall}.
+Consequently no orientation--\emph{independent} rule connects a quasi--square: the top
+orientation must be chosen from the size--appropriate $\Dfour$ transpose--coset (the wide
+class for $w=h+1$, the tall class for $h=w+1$). Within the correct coset, the eight feasible
+curves connect for the same $\mathrm{sh}$/$\mathrm{sw}$ reasons as squares (typically four of
+the eight orientations per size, selected by $n\bmod 4$); the infeasible curves connect only
+sporadically and never uniformly, as expected from Theorem~\ref{thm:main}. Thus
+quasi--squares add an \emph{orientation--selection} step on top of the square theory but no
+new feasibility. Full per--curve quasi--square cosets are tabulated in the reports.
+
+\section{Open problems}\label{sec:open}
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Rectangles.} The AEP itself extends to any $w\times h$; the classification of
+which of the forty curves fill arbitrary rectangles (and with which orientation cosets) is
+open. We expect the corner--anchored condition to remain necessary and the coloring lemma to
+remain the tool, but the routing analysis (M4) becomes richer.
+\item \textbf{Moore and the Jacobsthal numbers.} Empirically, a nested Moore block on an
+$m\times m$ square with $m$ odd connects precisely when $m$ is a Jacobsthal number
+($1,3,5,11,21,43,\dots$); curve $39$ fails exactly at $n\equiv2\pmod4$ with $n/2$
+non--Jacobsthal (first failure $n=14=2\cdot7$, while $n=22=2\cdot11$ connects). A proof of
+the Jacobsthal characterization of Moore closability under AEP is open and, we believe, of
+independent combinatorial interest.
+\item \textbf{A morphism--only criterion.} Theorem~\ref{thm:main} characterizes feasibility
+by kernels and morphism template. Is there a purely local criterion on the $4$--tuple of
+$\Dfour$ morphisms (independent of kernel identity) predicting which templates are
+parity--free? Propositions~\ref{prop:kernels}--\ref{prop:templates} suggest yes for the
+$\{0,4\}$ world.
+\end{enumerate}
+
+\appendix
+\section{Full classification table}\label{tab:class}
+Verdict key: \textsc{f} feasible (swap rule); \textsc{i} infeasible (mechanism, witness).
+All feasibility verified on $n=1..40$; all infeasibility by exhaustion at the witness.
+{\small
+\begin{longtable}{clccl}
+\toprule
+$\nu$ & name & kernels & verdict & rule / (mechanism, witness)\\
+\midrule\endhead
+0 & Hilbert & \{0\} & \textsc{f} & $\mathrm{sh}=\textsf{first}$\\
+1 & Moore & \{0\} & \textsc{i} & (M1/M2, $n{=}7$)\\
+2 & Liu1 & \{0\} & \textsc{i} & (M1, $n{=}7$)\\
+3 & Liu2 & \{0\} & \textsc{f} & $\mathrm{sh}=\textsf{second}$\\
+4 & Liu3 & \{0\} & \textsc{f} & $(\textsf{second},\textsf{first})$\\
+5 & Liu4 & \{0\} & \textsc{f} & $(\textsf{first},\textsf{second})$\\
+6 & Improper1 & \{5\} & \textsc{i} & (M3, $n{=}3$)\\
+7 & Improper2 & \{5\} & \textsc{i} & (M3, $n{=}9,11$)\\
+8 & Improper3 & \{5\} & \textsc{i} & (M3, $n{=}3,7$)\\
+9 & Improper4 & \{5\} & \textsc{i} & (M1, $n{=}5$)\\
+10 & Improper5 & \{5\} & \textsc{i} & (M3, $n{=}5,7$)\\
+11 & Improper6 & \{5\} & \textsc{i} & (M3, $n{=}5,7$)\\
+12 & Liu2+Liu4 \#1 & \{3,5\} & \textsc{i} & (M3, $n{=}3,7$)\\
+13 & Liu2+Liu4 \#2 & \{3,5\} & \textsc{i} & (M1, $n{=}5$)\\
+14 & Liu2+Liu4 \#3 & \{3,5\} & \textsc{i} & (M3, $n{=}3,7$)\\
+15 & Liu2+Liu4 \#4 & \{3,5\} & \textsc{i} & (M3, $n{=}5,7$)\\
+16 & Liu2+Liu4 \#5 & \{3,5\} & \textsc{i} & (M1/M3, $n{=}7$)\\
+17 & Liu2+Liu4 \#6 & \{3,5\} & \textsc{i} & (M1, $n{=}5$)\\
+18 & Hilbert+Liu3 \#1 & \{0,4\} & \textsc{i} & (M4, $n{=}13$)\\
+19 & Hilbert+Liu3 \#2 & \{0,4\} & \textsc{i} & (M1, $n{=}7$)\\
+20 & Hilbert+Liu3 \#3 & \{0,4\} & \textsc{i} & (M4, $n{=}7$)\\
+21 & Hilbert+Liu3 \#4 & \{0,4\} & \textsc{i} & (M4, $n{=}13$)\\
+22 & Hilbert+Liu3 \#5 & \{0,4\} & \textsc{i} & (M1, $n{=}7$)\\
+23 & Hilbert+Liu3 \#6 & \{0,4\} & \textsc{i} & (M4, $n\equiv\pm1\!\!\pmod 8$)\\
+24 & Hilbert+Liu3 \#7 & \{0,4\} & \textsc{f} & $(\textsf{first},\textsf{second})$\\
+25 & Hilbert+Liu3 \#8 & \{0,4\} & \textsc{i} & (M4, $n{=}13$)\\
+26 & Hilbert+Liu3 \#9 & \{0,4\} & \textsc{i} & (M1, $n{=}7$)\\
+27 & Hilbert+Liu3 \#10 & \{0,4\} & \textsc{i} & (M1, $n{=}7$)\\
+28 & Hilbert+Liu3 \#11 & \{0,4\} & \textsc{i} & (M4, $n{=}13$)\\
+29 & Hilbert+Liu3 \#12 & \{0,4\} & \textsc{f} & $(\textsf{second},\textsf{first})$\\
+30 & Hilbert+Liu3 \#13 & \{0,4\} & \textsc{f} & $(\textsf{second},\textsf{first})$\\
+31 & Hilbert+Liu3 \#14 & \{0,4\} & \textsc{f} & $(\textsf{first},\textsf{second})$\\
+32 & Moore+Liu4 \#1 & \{1,5\} & \textsc{i} & (M1/M2, $n{=}5$)\\
+33 & Moore+Liu4 \#2 & \{1,5\} & \textsc{i} & (M2/M3, $n{=}5,7$)\\
+34 & Moore+Liu4 \#3 & \{1,5\} & \textsc{i} & (M1/M2, $n{=}5$)\\
+35 & Moore+Liu4 \#4 & \{1,5\} & \textsc{i} & (M2/M3, $n{=}5,7$)\\
+36 & Moore+Liu4 \#5 & \{1,5\} & \textsc{i} & (M2/M3, $n{=}5,7$)\\
+37 & Moore+Liu4 \#6 & \{1,5\} & \textsc{i} & (M2/M3, $n{=}3,7$)\\
+38 & Moore+Liu2+Liu4 \#1 & \{1,3,5\} & \textsc{i} & (M2, $n{=}7$)\\
+39 & Moore+Liu2+Liu4 \#2 & \{1,3,5\} & \textsc{i} & (M2, $n{=}14$)\\
+\bottomrule
+\end{longtable}}
+
+\begin{thebibliography}{9}
+\bibitem{estevez2017} E.~Estevez-Rams, D.~Estevez-Moya, Y.~Mart\'inez-Camejo, D.~G\'omez-G\'omez, B.~Arag\'on-Fern\'andez,
+\emph{Hilbert curves in two dimensions}, Revista Cubana de F\'isica \textbf{34}, 9 (2017).
+\bibitem{wuchang2012} C.-C.~Wu, Y.-I.~Chang, \emph{Approximately even partition algorithm
+for coding the Hilbert curve of arbitrary-sized image}, IET Image Processing \textbf{6}(6),
+746--755 (2012).
+\bibitem{perez2014} C.~P\'erez-Demydenko, I.~Brito-Reyes, E.~Estevez-Rams, B.~Arag\'on-Fern\'andez,
+\emph{Locality preserving homogeneous Hilbert curves by use of arbitrary kernels}, Applied
+Mathematics and Computation \textbf{234}, 531 (2014).
+\bibitem{engine} \texttt{research/aep.py} and per-curve reports \texttt{research/reports/curve\_*.md}
+(this project): the construction engine and the certified per-curve derivations.
+\end{thebibliography}
+
+\end{document}

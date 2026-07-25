@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hilbertplot"
+version = "0.1.0"
+description = "The complete set of 40 two-dimensional Hilbert curves, and data plots on them."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "El3ssar", email = "kemossabee@gmail.com" }]
+keywords = [
+    "hilbert-curve",
+    "space-filling-curve",
+    "moore-curve",
+    "locality",
+    "dimensionality-reduction",
+    "visualization",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Typing :: Typed",
+]
+dependencies = ["numpy>=1.21"]
+
+[project.optional-dependencies]
+plot = ["matplotlib>=3.5"]
+dev = ["matplotlib>=3.5", "pytest>=7.0"]
+
+[project.urls]
+Homepage = "https://github.com/El3ssar/hilbertplot"
+Source = "https://github.com/El3ssar/hilbertplot"
+Issues = "https://github.com/El3ssar/hilbertplot/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hilbertplot"]
+
+# Ship only the package, tests, examples and metadata in the sdist -- never the
+# copyrighted source PDFs, scratch files or internal research notes at the repo root.
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/hilbertplot",
+    "/tests",
+    "/examples/*.py",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

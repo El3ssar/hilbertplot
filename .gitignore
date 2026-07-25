@@ -1,0 +1,41 @@
+# Third-party source papers (copyrighted — reference only, never committed)
+*.pdf
+
+# Scratch / debris
+scratch_*
+research/scratch_*
+.coverage
+.coverage.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Example output
+examples/output/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
