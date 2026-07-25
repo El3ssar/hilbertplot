@@ -18,8 +18,16 @@ from __future__ import annotations
 import numpy as np
 
 __all__ = [
-    "order_for", "order_floor", "square_side", "granulate", "resolve_order",
-    "scatter", "gather", "label_map", "difference_map", "fourier_spectrum",
+    "order_for",
+    "order_floor",
+    "square_side",
+    "granulate",
+    "resolve_order",
+    "scatter",
+    "gather",
+    "label_map",
+    "difference_map",
+    "fourier_spectrum",
 ]
 
 
@@ -102,7 +110,7 @@ def square_side(n: int) -> int:
     """
     if n < 1:
         raise ValueError(f"need at least one value, got n={n}")
-    s = int(n ** 0.5)
+    s = int(n**0.5)
     while s * s < n:
         s += 1
     while (s - 1) * (s - 1) >= n:
@@ -110,8 +118,7 @@ def square_side(n: int) -> int:
     return s
 
 
-def scatter(points: np.ndarray, values: np.ndarray, side: int,
-            fill: float = np.nan) -> np.ndarray:
+def scatter(points: np.ndarray, values: np.ndarray, side: int, fill: float = np.nan) -> np.ndarray:
     """Place ``values`` onto a ``side x side`` grid along a curve's ``points`` path.
 
     ``values[i]`` is written to ``points[i]``.  If there are more values than cells
@@ -147,8 +154,9 @@ def gather(points: np.ndarray, array: np.ndarray) -> np.ndarray:
     return array[points[:, 1], points[:, 0]]
 
 
-def fourier_spectrum(image: np.ndarray, *, log: bool = True, window: bool = False,
-                     remove_dc: bool = True) -> np.ndarray:
+def fourier_spectrum(
+    image: np.ndarray, *, log: bool = True, window: bool = False, remove_dc: bool = True
+) -> np.ndarray:
     """Return the centred 2-D power spectrum of a Hilbert-plot image.
 
     The magnitude of the (fft-shifted) 2-D Fourier transform: hidden periodicities and
@@ -239,7 +247,7 @@ def difference_map(points: np.ndarray, side: int) -> np.ndarray:
         for dx in (-1, 0, 1):
             if dx == 0 and dy == 0:
                 continue
-            neighbour = padded[1 + dy:1 + dy + side, 1 + dx:1 + dx + side]
+            neighbour = padded[1 + dy : 1 + dy + side, 1 + dx : 1 + dx + side]
             valid = ~np.isnan(neighbour)
             diff = np.abs(labels - neighbour)
             total[valid] += diff[valid]

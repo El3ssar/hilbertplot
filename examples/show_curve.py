@@ -18,8 +18,12 @@ def main() -> None:
     p.add_argument("curve", help="curve index 0-39 or name (e.g. 'hilbert', 'moore')")
     p.add_argument("order", type=int, help="order j (recursion depth)")
     p.add_argument("--save", metavar="FILE", help="save to FILE instead of showing")
-    p.add_argument("--mode", choices=("auto", "line", "fill"), default="auto",
-                   help="line = polyline, fill = visit-order heatmap (default: auto)")
+    p.add_argument(
+        "--mode",
+        choices=("auto", "line", "fill"),
+        default="auto",
+        help="line = polyline, fill = visit-order heatmap (default: auto)",
+    )
     p.add_argument("--solid", action="store_true", help="solid colour, no gradient")
     args = p.parse_args()
 
@@ -29,8 +33,9 @@ def main() -> None:
     if args.solid:
         style["color"] = "steelblue"
 
-    print(f"{c.symbol}  {c.name}  |  {c.kind}  |  kernels={c.combination}  "
-          f"|  {4 ** args.order} cells")
+    print(
+        f"{c.symbol}  {c.name}  |  {c.kind}  |  kernels={c.combination}  |  {4**args.order} cells"
+    )
 
     if args.save:
         c.save(args.order, args.save, **style)

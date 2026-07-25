@@ -63,19 +63,19 @@ def test_grid_rejects_bad_n():
 
 # -- data mapping square-fit ------------------------------------------------
 def test_square_fit_is_default_for_generalizing_curves():
-    img = hp.hilbert_plot(0, np.arange(10000)).image()   # ceil(sqrt(10000)) = 100
+    img = hp.hilbert_plot(0, np.arange(10000)).image()  # ceil(sqrt(10000)) = 100
     assert img.shape == (100, 100)
 
 
 def test_square_fit_tight_and_padded():
-    img = hp.hilbert_plot(0, np.arange(1000)).image()    # ceil(sqrt(1000)) = 32
+    img = hp.hilbert_plot(0, np.arange(1000)).image()  # ceil(sqrt(1000)) = 32
     assert img.shape == (32, 32)
-    assert np.isnan(img).sum() == 32 * 32 - 1000         # 24 blank cells
+    assert np.isnan(img).sum() == 32 * 32 - 1000  # 24 blank cells
 
 
 def test_infeasible_curve_falls_back_to_pad():
-    img = hp.hilbert_plot(1, np.arange(1000)).image()    # Moore -> 2^k pad
-    assert img.shape == (32, 32)                          # order_for(1000) = 5
+    img = hp.hilbert_plot(1, np.arange(1000)).image()  # Moore -> 2^k pad
+    assert img.shape == (32, 32)  # order_for(1000) = 5
 
 
 def test_explicit_fit_square_rejected_for_infeasible():
@@ -84,7 +84,7 @@ def test_explicit_fit_square_rejected_for_infeasible():
 
 
 def test_square_fit_round_trips_through_unroll():
-    data = np.arange(1, 226)                              # 225 -> 15x15
+    data = np.arange(1, 226)  # 225 -> 15x15
     img = hp.hilbert_plot(0, data).image()
     assert img.shape == (15, 15)
     assert np.array_equal(hp.curve(0).unroll(img), data)

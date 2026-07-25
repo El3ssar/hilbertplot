@@ -30,19 +30,20 @@ def interleaved_sequence(n):
 
 def main() -> None:
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     # 1) periodic ·10· -> checkerboard, coloured with a custom colour sweep
     hp.hilbert_plot(0, np.tile([1, 0], 4**6 // 2)).save(
-        os.path.join(OUT, "data_periodic.png"), "gray",
-        title="Periodic ·10·  (Hilbert plot)")
+        os.path.join(OUT, "data_periodic.png"), "gray", title="Periodic ·10·  (Hilbert plot)"
+    )
 
     # 2) the same data at three granularities (granularity chosen per render)
     data = interleaved_sequence(4**7)
     plot = hp.hilbert_plot(0, data)
     fig, axes = plt.subplots(1, 3, figsize=(11, 4))
-    for ax, g in zip(axes, (1, 4, 7)):
+    for ax, g in zip(axes, (1, 4, 7), strict=True):
         label = "faithful" if g == 1 else f"{g}-granularity"
         plot.draw("gray_r", granularity=g, ax=ax, title=label)
     fig.suptitle("Interleaved ·1001· / ·1101011· at three granularities", fontsize=12)
@@ -53,7 +54,7 @@ def main() -> None:
     # 3) the same signal through several different curves
     signal = np.sin(np.linspace(0, 40 * np.pi, 4**6)) + np.linspace(0, 2, 4**6)
     fig, axes = plt.subplots(2, 3, figsize=(10, 7))
-    for ax, i in zip(axes.ravel(), (0, 1, 3, 5, 9, 12)):
+    for ax, i in zip(axes.ravel(), (0, 1, 3, 5, 9, 12), strict=True):
         hp.hilbert_plot(i, signal).draw("viridis", ax=ax)
     fig.suptitle("One signal, six different curve mappings", fontsize=12)
     fig.tight_layout()
@@ -62,16 +63,24 @@ def main() -> None:
 
     # 4) numbers 1..100 with a custom colour sweep (red -> green -> blue)
     hp.hilbert_plot(0, np.arange(1, 101)).save(
-        os.path.join(OUT, "data_colours.png"), ["red", "green", "tab:blue"],
-        fit="truncate", title="1..100  swept red -> green -> blue")
+        os.path.join(OUT, "data_colours.png"),
+        ["red", "green", "tab:blue"],
+        fit="truncate",
+        title="1..100  swept red -> green -> blue",
+    )
 
     # 5) the difference-map overlay, toggled and at two thresholds
     plot = hp.hilbert_plot(0, np.arange(4**5))
     fig, axes = plt.subplots(1, 3, figsize=(11, 4))
     plot.draw("gray", ax=axes[0], title="Hilbert plot")
     plot.draw("gray", ax=axes[1], difference=True, title="+ difference map (thr=1.0)")
-    plot.draw("gray", ax=axes[2], difference=True, difference_threshold=0.4,
-              title="+ difference map (thr=0.4)")
+    plot.draw(
+        "gray",
+        ax=axes[2],
+        difference=True,
+        difference_threshold=0.4,
+        title="+ difference map (thr=0.4)",
+    )
     fig.suptitle("Where the curve breaks locality (difference map overlay)", fontsize=12)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT, "data_difference.png"), dpi=140, bbox_inches="tight")
@@ -85,7 +94,7 @@ def main() -> None:
         return np.array(s[:n], dtype=float)
 
     rng = np.random.default_rng(0)
-    N = 4 ** 7
+    N = 4**7
     signals = {
         "Thue-Morse": thue_morse(N),
         "period-97 + noise": np.sin(2 * np.pi * np.arange(N) / 97) + 0.8 * rng.standard_normal(N),
@@ -95,8 +104,9 @@ def main() -> None:
     for col, (name, data) in enumerate(signals.items()):
         plot = hp.hilbert_plot(0, data)
         plot.draw("gray", ax=axes[0, col], title=name)
-        plot.draw("magma", ax=axes[1, col], fourier=True, window=True,
-                  title=f"{name} - Fourier map")
+        plot.draw(
+            "magma", ax=axes[1, col], fourier=True, window=True, title=f"{name} - Fourier map"
+        )
     fig.suptitle("Hilbert plots and their 2-D Fourier maps", fontsize=12)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT, "data_fourier.png"), dpi=120, bbox_inches="tight")

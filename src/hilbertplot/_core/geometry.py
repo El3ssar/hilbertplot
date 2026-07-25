@@ -19,7 +19,17 @@ from __future__ import annotations
 
 import numpy as np
 
-from .symmetry import ANTIDIAGONAL, DIAGONAL, FLIP_HORIZONTAL, FLIP_VERTICAL, IDENTITY, ROT180, ROT270, ROT90, Symmetry
+from .symmetry import (
+    ANTIDIAGONAL,
+    DIAGONAL,
+    FLIP_HORIZONTAL,
+    FLIP_VERTICAL,
+    IDENTITY,
+    ROT90,
+    ROT180,
+    ROT270,
+    Symmetry,
+)
 
 __all__ = [
     "codes_to_points",
@@ -33,8 +43,14 @@ __all__ = [
 
 #: The eight elements of D4, used for canonicalisation and (later) generalisation.
 D4_ELEMENTS: tuple[Symmetry, ...] = (
-    IDENTITY, ROT90, ROT180, ROT270,
-    FLIP_VERTICAL, FLIP_HORIZONTAL, DIAGONAL, ANTIDIAGONAL,
+    IDENTITY,
+    ROT90,
+    ROT180,
+    ROT270,
+    FLIP_VERTICAL,
+    FLIP_HORIZONTAL,
+    DIAGONAL,
+    ANTIDIAGONAL,
 )
 
 # Stroke codes u=0, d=1, l=2, r=3, indexed into unit (dx, dy) steps.

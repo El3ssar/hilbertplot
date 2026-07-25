@@ -36,8 +36,8 @@ and *improper* (kernel = the Liu-4 curve ``5H``).
 from __future__ import annotations
 
 import enum
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
-from typing import Mapping
 
 __all__ = [
     "Family",
@@ -149,132 +149,244 @@ def _q(base: int, morphism: str = "e", reverse: bool = False) -> QuadrantRule:
 
 _PROPER: tuple[CurveSpec, ...] = (
     CurveSpec(
-        0, "Hilbert", Family.HOMOGENEOUS_PROPER,
+        0,
+        "Hilbert",
+        Family.HOMOGENEOUS_PROPER,
         (_q(0, "o"), _q(0), _q(0), _q(0, "a")),
-        "0H", notes="corner-corner; the original Hilbert curve",
+        "0H",
+        notes="corner-corner; the original Hilbert curve",
     ),
     CurveSpec(
-        1, "Moore", Family.HOMOGENEOUS_PROPER,
+        1,
+        "Moore",
+        Family.HOMOGENEOUS_PROPER,
         (_q(0, "g"), _q(0, "g"), _q(0, "x"), _q(0, "x")),
-        "0H", closed=True, notes="edge-edge shared; Moore's closed curve",
+        "0H",
+        closed=True,
+        notes="edge-edge shared; Moore's closed curve",
     ),
     CurveSpec(
-        2, "Liu1", Family.HOMOGENEOUS_PROPER,
+        2,
+        "Liu1",
+        Family.HOMOGENEOUS_PROPER,
         (_q(0, "f"), _q(0), _q(0), _q(0, "f")),
-        "0H", closed=True, notes="interior-interior; cannot serve as a building block",
+        "0H",
+        closed=True,
+        notes="interior-interior; cannot serve as a building block",
     ),
     CurveSpec(
-        3, "Liu2", Family.HOMOGENEOUS_PROPER,
+        3,
+        "Liu2",
+        Family.HOMOGENEOUS_PROPER,
         (_q(0, "m"), _q(0, "g"), _q(0, "x"), _q(0, "m")),
-        "0H", notes="edge-edge opposed",
+        "0H",
+        notes="edge-edge opposed",
     ),
     CurveSpec(
-        4, "Liu3", Family.HOMOGENEOUS_PROPER,
+        4,
+        "Liu3",
+        Family.HOMOGENEOUS_PROPER,
         (_q(0, "o"), _q(0), _q(0), _q(0, "f")),
-        "0H", notes="corner-interior",
+        "0H",
+        notes="corner-interior",
     ),
     CurveSpec(
-        5, "Liu4", Family.HOMOGENEOUS_PROPER,
+        5,
+        "Liu4",
+        Family.HOMOGENEOUS_PROPER,
         (_q(0, "m"), _q(0, "g"), _q(0, "x"), _q(0, "x")),
-        "0H", notes="edge-edge adjacent; kernel of every improper curve",
+        "0H",
+        notes="edge-edge adjacent; kernel of every improper curve",
     ),
 )
 
 _IMPROPER: tuple[CurveSpec, ...] = (
     CurveSpec(
-        6, "I1", Family.HOMOGENEOUS_IMPROPER,
+        6,
+        "I1",
+        Family.HOMOGENEOUS_IMPROPER,
         (_q(5, "f"), _q(5, "y", True), _q(5), _q(5, "m", True)),
-        "5H", closed=True, notes="interior-interior",
+        "5H",
+        closed=True,
+        notes="interior-interior",
     ),
     CurveSpec(
-        7, "I2", Family.HOMOGENEOUS_IMPROPER,
+        7,
+        "I2",
+        Family.HOMOGENEOUS_IMPROPER,
         (_q(5, "f"), _q(5, "y", True), _q(5), _q(5, "a")),
-        "5H", notes="interior-edge",
+        "5H",
+        notes="interior-edge",
     ),
     CurveSpec(
-        8, "I3", Family.HOMOGENEOUS_IMPROPER,
+        8,
+        "I3",
+        Family.HOMOGENEOUS_IMPROPER,
         (_q(5, "x", True), _q(5, "y", True), _q(5), _q(5, "a")),
-        "5H", notes="edge-edge opposed",
+        "5H",
+        notes="edge-edge opposed",
     ),
     CurveSpec(
-        9, "I4", Family.HOMOGENEOUS_IMPROPER,
+        9,
+        "I4",
+        Family.HOMOGENEOUS_IMPROPER,
         (_q(5, "a", True), _q(5, "g"), _q(5, "o", True), _q(5, "x")),
-        "5H", closed=True, notes="interior-interior",
+        "5H",
+        closed=True,
+        notes="interior-interior",
     ),
     CurveSpec(
-        10, "I5", Family.HOMOGENEOUS_IMPROPER,
+        10,
+        "I5",
+        Family.HOMOGENEOUS_IMPROPER,
         (_q(5, "m"), _q(5, "g"), _q(5, "o", True), _q(5, "f", True)),
-        "5H", notes="edge-edge opposed",
+        "5H",
+        notes="edge-edge opposed",
     ),
     CurveSpec(
-        11, "I6", Family.HOMOGENEOUS_IMPROPER,
+        11,
+        "I6",
+        Family.HOMOGENEOUS_IMPROPER,
         (_q(5, "m"), _q(5, "g"), _q(5, "o", True), _q(5, "x")),
-        "5H", notes="edge-interior",
+        "5H",
+        notes="edge-interior",
     ),
 )
 
 # Inhomogeneous curves 12-39.  Grouped exactly as in the paper (Figures 6-9).
 _INHOMOGENEOUS: tuple[CurveSpec, ...] = (
     # 3H + 5H  (Figure 6): two 3H + two 5H, then one 3H + three 5H.
-    CurveSpec(12, "IH12", Family.INHOMOGENEOUS,
-              (_q(3, "o"), _q(5, "y", True), _q(5), _q(3, "a")), "3H+5H"),
-    CurveSpec(13, "IH13", Family.INHOMOGENEOUS,
-              (_q(3, "g"), _q(5, "g"), _q(5, "o", True), _q(3, "x")), "3H+5H"),
-    CurveSpec(14, "IH14", Family.INHOMOGENEOUS,
-              (_q(3, "o"), _q(5, "y", True), _q(5), _q(5, "a")), "3H+5H"),
-    CurveSpec(15, "IH15", Family.INHOMOGENEOUS,
-              (_q(3, "g"), _q(5, "g"), _q(5, "o", True), _q(5, "f", True)), "3H+5H"),
-    CurveSpec(16, "IH16", Family.INHOMOGENEOUS,
-              (_q(3, "o"), _q(5, "y", True), _q(5), _q(5, "m", True)), "3H+5H"),
-    CurveSpec(17, "IH17", Family.INHOMOGENEOUS,
-              (_q(3, "g"), _q(5, "g"), _q(5, "o", True), _q(5, "x")), "3H+5H"),
+    CurveSpec(
+        12, "IH12", Family.INHOMOGENEOUS, (_q(3, "o"), _q(5, "y", True), _q(5), _q(3, "a")), "3H+5H"
+    ),
+    CurveSpec(
+        13,
+        "IH13",
+        Family.INHOMOGENEOUS,
+        (_q(3, "g"), _q(5, "g"), _q(5, "o", True), _q(3, "x")),
+        "3H+5H",
+    ),
+    CurveSpec(
+        14, "IH14", Family.INHOMOGENEOUS, (_q(3, "o"), _q(5, "y", True), _q(5), _q(5, "a")), "3H+5H"
+    ),
+    CurveSpec(
+        15,
+        "IH15",
+        Family.INHOMOGENEOUS,
+        (_q(3, "g"), _q(5, "g"), _q(5, "o", True), _q(5, "f", True)),
+        "3H+5H",
+    ),
+    CurveSpec(
+        16,
+        "IH16",
+        Family.INHOMOGENEOUS,
+        (_q(3, "o"), _q(5, "y", True), _q(5), _q(5, "m", True)),
+        "3H+5H",
+    ),
+    CurveSpec(
+        17,
+        "IH17",
+        Family.INHOMOGENEOUS,
+        (_q(3, "g"), _q(5, "g"), _q(5, "o", True), _q(5, "x")),
+        "3H+5H",
+    ),
     # 0H + 4H  (Figure 7): fourteen curves.
-    CurveSpec(18, "IH18", Family.INHOMOGENEOUS,
-              (_q(4, "x", True), _q(0), _q(0), _q(4, "a")), "0H+4H"),
-    CurveSpec(19, "IH19", Family.INHOMOGENEOUS,
-              (_q(4, "m", True), _q(0), _q(0), _q(4, "f")), "0H+4H"),
-    CurveSpec(20, "IH20", Family.INHOMOGENEOUS,
-              (_q(4, "x", True), _q(0), _q(0), _q(4, "f")), "0H+4H"),
-    CurveSpec(21, "IH21", Family.INHOMOGENEOUS,
-              (_q(4, "f", True), _q(0, "g"), _q(0, "x"), _q(4, "m")), "0H+4H"),
-    CurveSpec(22, "IH22", Family.INHOMOGENEOUS,
-              (_q(4, "a", True), _q(0, "g"), _q(0, "x"), _q(4, "x")), "0H+4H"),
-    CurveSpec(23, "IH23", Family.INHOMOGENEOUS,
-              (_q(4, "a", True), _q(0, "g"), _q(0, "x"), _q(4, "m")), "0H+4H"),
-    CurveSpec(24, "IH24", Family.INHOMOGENEOUS,
-              (_q(0, "m"), _q(0, "g"), _q(0, "x"), _q(4, "x")), "0H+4H"),
-    CurveSpec(25, "IH25", Family.INHOMOGENEOUS,
-              (_q(0, "g"), _q(0, "g"), _q(0, "x"), _q(4, "m")), "0H+4H"),
-    CurveSpec(26, "IH26", Family.INHOMOGENEOUS,
-              (_q(0, "g"), _q(0, "g"), _q(0, "x"), _q(4, "x")), "0H+4H"),
-    CurveSpec(27, "IH27", Family.INHOMOGENEOUS,
-              (_q(0, "f"), _q(0), _q(0), _q(4, "f")), "0H+4H"),
-    CurveSpec(28, "IH28", Family.INHOMOGENEOUS,
-              (_q(0, "f"), _q(0), _q(0), _q(4, "a")), "0H+4H"),
-    CurveSpec(29, "IH29", Family.INHOMOGENEOUS,
-              (_q(0, "o"), _q(0), _q(0), _q(4, "f")), "0H+4H"),
-    CurveSpec(30, "IH30", Family.INHOMOGENEOUS,
-              (_q(0, "o"), _q(0), _q(0), _q(4, "a")), "0H+4H"),
-    CurveSpec(31, "IH31", Family.INHOMOGENEOUS,
-              (_q(0, "m"), _q(0, "g"), _q(0, "x"), _q(4, "m")), "0H+4H"),
+    CurveSpec(
+        18, "IH18", Family.INHOMOGENEOUS, (_q(4, "x", True), _q(0), _q(0), _q(4, "a")), "0H+4H"
+    ),
+    CurveSpec(
+        19, "IH19", Family.INHOMOGENEOUS, (_q(4, "m", True), _q(0), _q(0), _q(4, "f")), "0H+4H"
+    ),
+    CurveSpec(
+        20, "IH20", Family.INHOMOGENEOUS, (_q(4, "x", True), _q(0), _q(0), _q(4, "f")), "0H+4H"
+    ),
+    CurveSpec(
+        21,
+        "IH21",
+        Family.INHOMOGENEOUS,
+        (_q(4, "f", True), _q(0, "g"), _q(0, "x"), _q(4, "m")),
+        "0H+4H",
+    ),
+    CurveSpec(
+        22,
+        "IH22",
+        Family.INHOMOGENEOUS,
+        (_q(4, "a", True), _q(0, "g"), _q(0, "x"), _q(4, "x")),
+        "0H+4H",
+    ),
+    CurveSpec(
+        23,
+        "IH23",
+        Family.INHOMOGENEOUS,
+        (_q(4, "a", True), _q(0, "g"), _q(0, "x"), _q(4, "m")),
+        "0H+4H",
+    ),
+    CurveSpec(
+        24, "IH24", Family.INHOMOGENEOUS, (_q(0, "m"), _q(0, "g"), _q(0, "x"), _q(4, "x")), "0H+4H"
+    ),
+    CurveSpec(
+        25, "IH25", Family.INHOMOGENEOUS, (_q(0, "g"), _q(0, "g"), _q(0, "x"), _q(4, "m")), "0H+4H"
+    ),
+    CurveSpec(
+        26, "IH26", Family.INHOMOGENEOUS, (_q(0, "g"), _q(0, "g"), _q(0, "x"), _q(4, "x")), "0H+4H"
+    ),
+    CurveSpec(27, "IH27", Family.INHOMOGENEOUS, (_q(0, "f"), _q(0), _q(0), _q(4, "f")), "0H+4H"),
+    CurveSpec(28, "IH28", Family.INHOMOGENEOUS, (_q(0, "f"), _q(0), _q(0), _q(4, "a")), "0H+4H"),
+    CurveSpec(29, "IH29", Family.INHOMOGENEOUS, (_q(0, "o"), _q(0), _q(0), _q(4, "f")), "0H+4H"),
+    CurveSpec(30, "IH30", Family.INHOMOGENEOUS, (_q(0, "o"), _q(0), _q(0), _q(4, "a")), "0H+4H"),
+    CurveSpec(
+        31, "IH31", Family.INHOMOGENEOUS, (_q(0, "m"), _q(0, "g"), _q(0, "x"), _q(4, "m")), "0H+4H"
+    ),
     # 1H + 5H  (Figure 8): two 1H + two 5H, then one 1H + three 5H.
-    CurveSpec(32, "IH32", Family.INHOMOGENEOUS,
-              (_q(1, "f"), _q(5, "y", True), _q(5), _q(1, "f")), "1H+5H"),
-    CurveSpec(33, "IH33", Family.INHOMOGENEOUS,
-              (_q(1, "m"), _q(5, "g"), _q(5, "o", True), _q(1, "m")), "1H+5H"),
-    CurveSpec(34, "IH34", Family.INHOMOGENEOUS,
-              (_q(5, "f"), _q(5, "y", True), _q(5), _q(1, "f")), "1H+5H"),
-    CurveSpec(35, "IH35", Family.INHOMOGENEOUS,
-              (_q(5, "a", True), _q(5, "g"), _q(5, "o", True), _q(1, "m")), "1H+5H"),
-    CurveSpec(36, "IH36", Family.INHOMOGENEOUS,
-              (_q(5, "x", True), _q(5, "y", True), _q(5), _q(1, "f")), "1H+5H"),
-    CurveSpec(37, "IH37", Family.INHOMOGENEOUS,
-              (_q(5, "m"), _q(5, "g"), _q(5, "o", True), _q(1, "m")), "1H+5H"),
+    CurveSpec(
+        32, "IH32", Family.INHOMOGENEOUS, (_q(1, "f"), _q(5, "y", True), _q(5), _q(1, "f")), "1H+5H"
+    ),
+    CurveSpec(
+        33,
+        "IH33",
+        Family.INHOMOGENEOUS,
+        (_q(1, "m"), _q(5, "g"), _q(5, "o", True), _q(1, "m")),
+        "1H+5H",
+    ),
+    CurveSpec(
+        34, "IH34", Family.INHOMOGENEOUS, (_q(5, "f"), _q(5, "y", True), _q(5), _q(1, "f")), "1H+5H"
+    ),
+    CurveSpec(
+        35,
+        "IH35",
+        Family.INHOMOGENEOUS,
+        (_q(5, "a", True), _q(5, "g"), _q(5, "o", True), _q(1, "m")),
+        "1H+5H",
+    ),
+    CurveSpec(
+        36,
+        "IH36",
+        Family.INHOMOGENEOUS,
+        (_q(5, "x", True), _q(5, "y", True), _q(5), _q(1, "f")),
+        "1H+5H",
+    ),
+    CurveSpec(
+        37,
+        "IH37",
+        Family.INHOMOGENEOUS,
+        (_q(5, "m"), _q(5, "g"), _q(5, "o", True), _q(1, "m")),
+        "1H+5H",
+    ),
     # 1H + 3H + 5H  (Figure 9): two curves.
-    CurveSpec(38, "IH38", Family.INHOMOGENEOUS,
-              (_q(3, "o"), _q(5, "y", True), _q(5), _q(1, "f")), "1H+3H+5H"),
-    CurveSpec(39, "IH39", Family.INHOMOGENEOUS,
-              (_q(3, "g"), _q(5, "g"), _q(5, "o", True), _q(1, "m")), "1H+3H+5H"),
+    CurveSpec(
+        38,
+        "IH38",
+        Family.INHOMOGENEOUS,
+        (_q(3, "o"), _q(5, "y", True), _q(5), _q(1, "f")),
+        "1H+3H+5H",
+    ),
+    CurveSpec(
+        39,
+        "IH39",
+        Family.INHOMOGENEOUS,
+        (_q(3, "g"), _q(5, "g"), _q(5, "o", True), _q(1, "m")),
+        "1H+3H+5H",
+    ),
 )
 
 # Friendly, human-readable names.  Proper curves keep their established names

@@ -18,7 +18,7 @@ morphism and (optionally) a reversion applied.  Results are memoised on
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 
 import numpy as np
 
@@ -59,7 +59,7 @@ def word_length(order: int) -> int:
     return 4**order - 1
 
 
-@lru_cache(maxsize=None)
+@cache
 def _codes(index: int, order: int) -> np.ndarray:
     if order == 0:
         return _EMPTY
@@ -72,9 +72,7 @@ def _codes(index: int, order: int) -> np.ndarray:
         if rule.reverse:
             sub = _REVERSION_TABLE[sub[::-1]]
         q.append(sub)
-    out = np.concatenate(
-        (q[0], _CONNECTORS[0], q[1], _CONNECTORS[1], q[2], _CONNECTORS[2], q[3])
-    )
+    out = np.concatenate((q[0], _CONNECTORS[0], q[1], _CONNECTORS[1], q[2], _CONNECTORS[2], q[3]))
     out.flags.writeable = False  # cached; never mutate in place
     return out
 

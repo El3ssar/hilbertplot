@@ -8,7 +8,6 @@ from hilbertplot._core.symmetry import (
     DIRECTIONS,
     IDENTITY,
     MORPHISMS,
-    Symmetry,
     apply_morphism,
     reverse_word,
 )

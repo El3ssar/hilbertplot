@@ -1,6 +1,6 @@
 """Print the 40 curves grouped by family -- the lists print themselves as tables.
 
-    python examples/groups.py
+python examples/groups.py
 """
 
 import hilbertplot
@@ -18,9 +18,11 @@ def main() -> None:
         print(hilbertplot.by_kernels(*kernels))
         print()
 
-    print(f"Totals: {len(hilbertplot.homogeneous())} homogeneous "
-          f"({len(hilbertplot.proper())} proper + {len(hilbertplot.improper())} improper) "
-          f"+ {len(hilbertplot.inhomogeneous())} inhomogeneous = {len(hilbertplot.catalog())}")
+    print(
+        f"Totals: {len(hilbertplot.homogeneous())} homogeneous "
+        f"({len(hilbertplot.proper())} proper + {len(hilbertplot.improper())} improper) "
+        f"+ {len(hilbertplot.inhomogeneous())} inhomogeneous = {len(hilbertplot.catalog())}"
+    )
 
 
 if __name__ == "__main__":

@@ -24,8 +24,9 @@ def test_catalog_has_forty_curves():
 @pytest.mark.parametrize("order", [1, 2, 3, 4, 5, 6])
 def test_every_curve_is_space_filling(order):
     for c in hp.catalog():
-        assert is_space_filling(c.points(order), order), \
+        assert is_space_filling(c.points(order), order), (
             f"{c.name} not space-filling at order {order}"
+        )
 
 
 @pytest.mark.parametrize("order", [3, 4, 5])
@@ -100,10 +101,18 @@ def test_exactly_four_closed_curves():
 # homogeneous curves, orthogonal to the space-filling property.
 # --------------------------------------------------------------------------
 _TABLE3_ENDPOINTS = {
-    0: ("corner", "corner"), 1: ("edge", "edge"), 2: ("interior", "interior"),
-    3: ("edge", "edge"), 4: ("corner", "interior"), 5: ("edge", "edge"),
-    6: ("interior", "interior"), 7: ("interior", "edge"), 8: ("edge", "edge"),
-    9: ("interior", "interior"), 10: ("edge", "edge"), 11: ("edge", "interior"),
+    0: ("corner", "corner"),
+    1: ("edge", "edge"),
+    2: ("interior", "interior"),
+    3: ("edge", "edge"),
+    4: ("corner", "interior"),
+    5: ("edge", "edge"),
+    6: ("interior", "interior"),
+    7: ("interior", "edge"),
+    8: ("edge", "edge"),
+    9: ("interior", "interior"),
+    10: ("edge", "edge"),
+    11: ("edge", "interior"),
 }
 
 
@@ -170,7 +179,7 @@ def test_curve_repr_is_just_the_name():
 
 def test_curvelist_is_a_list_that_prints_as_a_table():
     curves = hp.proper()
-    assert isinstance(curves, list)          # still a real list
+    assert isinstance(curves, list)  # still a real list
     assert curves[0] == hp.curve(0)
     text = repr(curves)
     assert "name" in text and "kind" in text and "closed" in text
@@ -180,4 +189,4 @@ def test_curvelist_is_a_list_that_prints_as_a_table():
 
 
 def test_empty_curvelist_repr():
-    assert repr(hp.by_kernels(2)) == "CurveList([])"   # kernel 2 is never used
+    assert repr(hp.by_kernels(2)) == "CurveList([])"  # kernel 2 is never used

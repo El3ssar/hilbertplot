@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from .._core.curve import Curve, curve as _lookup_curve
+from .._core.curve import Curve
+from .._core.curve import curve as _lookup_curve
 from .._data.mapping import granulate, resolve_order, scatter, square_side
 
 __all__ = ["HilbertPlot", "hilbert_plot"]
@@ -57,8 +58,13 @@ def _overlay_difference(ax, dmap, side, threshold, color):
     barrier = dmap > dmap.mean() + threshold * dmap.std()
     overlay = np.zeros((side, side, 4))
     overlay[barrier] = to_rgba(color)
-    ax.imshow(overlay, origin="lower", interpolation="nearest",
-              extent=(-0.5, side - 0.5, -0.5, side - 0.5), zorder=2)
+    ax.imshow(
+        overlay,
+        origin="lower",
+        interpolation="nearest",
+        extent=(-0.5, side - 0.5, -0.5, side - 0.5),
+        zorder=2,
+    )
 
 
 class HilbertPlot:
@@ -109,8 +115,14 @@ class HilbertPlot:
         return self._data.size
 
     # -- the mapping ---------------------------------------------------------
-    def image(self, *, granularity: int = 1, order: int | None = None,
-              fit: str = "auto", fill: float = np.nan) -> np.ndarray:
+    def image(
+        self,
+        *,
+        granularity: int = 1,
+        order: int | None = None,
+        fit: str = "auto",
+        fill: float = np.nan,
+    ) -> np.ndarray:
         """Return the 2-D image of the data mapped through the curve.
 
         Parameters
@@ -145,8 +157,15 @@ class HilbertPlot:
         values, points, side = self._layout(granularity, order, fit)
         return scatter(points, values, side, fill)
 
-    def fourier(self, *, granularity: int = 1, order: int | None = None,
-                fit: str = "auto", log: bool = True, window: bool = False) -> np.ndarray:
+    def fourier(
+        self,
+        *,
+        granularity: int = 1,
+        order: int | None = None,
+        fit: str = "auto",
+        log: bool = True,
+        window: bool = False,
+    ) -> np.ndarray:
         """Return the 2-D Fourier map of this plot -- the centred power spectrum of the image.
 
         Periodic and self-similar structure in the data appears as bright peaks and
@@ -200,11 +219,25 @@ class HilbertPlot:
         return values, self._curve.points(order), 2**order
 
     # -- rendering -----------------------------------------------------------
-    def draw(self, cmap="viridis", *, granularity: int = 1, order: int | None = None,
-             fit: str = "auto", fill: float = np.nan, ax=None, vmin=None, vmax=None,
-             title: str | None = None, difference: bool = False,
-             difference_threshold: float = 1.0, difference_color="#2b6cff",
-             fourier: bool = False, window: bool = False, **imshow_kw):
+    def draw(
+        self,
+        cmap="viridis",
+        *,
+        granularity: int = 1,
+        order: int | None = None,
+        fit: str = "auto",
+        fill: float = np.nan,
+        ax=None,
+        vmin=None,
+        vmax=None,
+        title: str | None = None,
+        difference: bool = False,
+        difference_threshold: float = 1.0,
+        difference_color="#2b6cff",
+        fourier: bool = False,
+        window: bool = False,
+        **imshow_kw,
+    ):
         """Render onto ``ax`` (created if ``None``) and return the axes -- no window.
 
         Parameters
@@ -250,9 +283,8 @@ class HilbertPlot:
         >>> ax = plot.draw("gray", difference=True)                  # doctest: +SKIP
         >>> ax = plot.draw("magma", fourier=True)                    # doctest: +SKIP
         """
-        from .render import pyplot
-
         from .._data.mapping import difference_map, fourier_spectrum
+        from .render import pyplot
 
         plt = pyplot()
         values, points, side = self._layout(granularity, order, fit)
@@ -271,12 +303,20 @@ class HilbertPlot:
             vmin = np.nanmin(image)
         if vmax is None:
             vmax = np.nanmax(image)
-        ax.imshow(image, origin="lower", interpolation="nearest",
-                  cmap=_resolve_cmap(cmap), vmin=vmin, vmax=vmax,
-                  extent=(-0.5, side - 0.5, -0.5, side - 0.5), **imshow_kw)
+        ax.imshow(
+            image,
+            origin="lower",
+            interpolation="nearest",
+            cmap=_resolve_cmap(cmap),
+            vmin=vmin,
+            vmax=vmax,
+            extent=(-0.5, side - 0.5, -0.5, side - 0.5),
+            **imshow_kw,
+        )
         if difference:
-            _overlay_difference(ax, difference_map(points, side), side,
-                                difference_threshold, difference_color)
+            _overlay_difference(
+                ax, difference_map(points, side), side, difference_threshold, difference_color
+            )
         ax.set_aspect("equal")
         ax.set_xticks([])
         ax.set_yticks([])

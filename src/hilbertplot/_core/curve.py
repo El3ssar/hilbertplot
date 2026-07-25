@@ -174,8 +174,8 @@ class Curve:
         >>> hilbertplot.curve(0).points(1).tolist()
         [[0, 0], [0, 1], [1, 1], [1, 0]]
         """
-        from .geometry import codes_to_points
         from .generation import curve_codes
+        from .geometry import codes_to_points
 
         return codes_to_points(curve_codes(self._spec.index, order))
 
@@ -267,9 +267,9 @@ class Curve:
             raise ValueError("array must have side >= 1")
         order = side.bit_length() - 1
         if (1 << order) == side:
-            points = self.points(order)                   # power of two: fast path
+            points = self.points(order)  # power of two: fast path
         elif self.generalizes:
-            points = self.grid(side)                      # arbitrary square
+            points = self.grid(side)  # arbitrary square
         else:
             raise ValueError(
                 f"array side {side} is not a power of two, and {self.name} does not "
@@ -313,7 +313,7 @@ class Curve:
         return difference_map(self.points(order), 2**order)
 
     # -- data plotting -------------------------------------------------------
-    def plot_data(self, data) -> "HilbertPlot":  # noqa: F821 (forward ref)
+    def plot_data(self, data) -> HilbertPlot:  # noqa: F821 (forward ref)
         """Bind a 1-D ``data`` vector to this curve, returning a :class:`HilbertPlot`.
 
         Nothing is drawn.  The returned object renders on demand -- choose the colormap,
@@ -438,10 +438,7 @@ class CurveList(list):
             return "CurveList([])"
         header = ("#", "name", "kind", "closed")
         rows = [header]
-        rows += [
-            (str(c.index), c.name, c.kind, "yes" if c.is_closed else "")
-            for c in self
-        ]
+        rows += [(str(c.index), c.name, c.kind, "yes" if c.is_closed else "") for c in self]
         widths = [max(len(row[i]) for row in rows) for i in range(len(header))]
         out = []
         for i, row in enumerate(rows):

@@ -3,8 +3,8 @@
 import pytest
 
 import hilbertplot as hp
-from hilbertplot._core.geometry import word_to_codes
 from hilbertplot._core.generation import clear_cache, curve_codes, curve_word, word_length
+from hilbertplot._core.geometry import word_to_codes
 
 
 def test_hilbert_order_2_matches_paper():

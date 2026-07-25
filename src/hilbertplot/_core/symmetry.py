@@ -29,9 +29,9 @@ The eight elements of :math:`D_4` are exposed both as named constants and throug
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Iterable, Mapping
 
 __all__ = [
     "Direction",
@@ -63,9 +63,7 @@ DIRECTION_VECTORS: Mapping[str, tuple[int, int]] = {
 }
 
 # Reverse lookup: unit vector -> letter.
-_VECTOR_TO_LETTER: Mapping[tuple[int, int], str] = {
-    v: k for k, v in DIRECTION_VECTORS.items()
-}
+_VECTOR_TO_LETTER: Mapping[tuple[int, int], str] = {v: k for k, v in DIRECTION_VECTORS.items()}
 
 # A lightweight alias; a "Direction" is just one of the letters above.
 Direction = str
@@ -111,7 +109,7 @@ class Symmetry:
         return "".join(table[letter] for letter in word)
 
     # -- group structure ----------------------------------------------------
-    def compose(self, other: "Symmetry") -> "Symmetry":
+    def compose(self, other: Symmetry) -> Symmetry:
         """Return the symmetry ``self`` followed by ``other`` (``other after self``).
 
         ``s.compose(t).apply_vector(v) == t.apply_vector(s.apply_vector(v))``.
@@ -125,7 +123,7 @@ class Symmetry:
             )
         )
 
-    def __matmul__(self, other: "Symmetry") -> "Symmetry":
+    def __matmul__(self, other: Symmetry) -> Symmetry:
         return self.compose(other)
 
     def __repr__(self) -> str:  # pragma: no cover - cosmetic
@@ -133,14 +131,14 @@ class Symmetry:
 
 
 # The eight elements of D4.  Matrices act on (x, y) column vectors.
-IDENTITY = Symmetry(((1, 0), (0, 1)), "e")          # identity
-ROT90 = Symmetry(((0, -1), (1, 0)), "g")            # +90 deg (counter-clockwise)
-ROT180 = Symmetry(((-1, 0), (0, -1)), "f")          # 180 deg
-ROT270 = Symmetry(((0, 1), (-1, 0)), "x")           # -90 deg (clockwise)
-FLIP_VERTICAL = Symmetry(((1, 0), (0, -1)), "m")    # reflect across x-axis (y -> -y)
+IDENTITY = Symmetry(((1, 0), (0, 1)), "e")  # identity
+ROT90 = Symmetry(((0, -1), (1, 0)), "g")  # +90 deg (counter-clockwise)
+ROT180 = Symmetry(((-1, 0), (0, -1)), "f")  # 180 deg
+ROT270 = Symmetry(((0, 1), (-1, 0)), "x")  # -90 deg (clockwise)
+FLIP_VERTICAL = Symmetry(((1, 0), (0, -1)), "m")  # reflect across x-axis (y -> -y)
 FLIP_HORIZONTAL = Symmetry(((-1, 0), (0, 1)), "y")  # reflect across y-axis (x -> -x)
-DIAGONAL = Symmetry(((0, 1), (1, 0)), "o")          # reflect across line y = x
-ANTIDIAGONAL = Symmetry(((0, -1), (-1, 0)), "a")    # reflect across line y = -x
+DIAGONAL = Symmetry(((0, 1), (1, 0)), "o")  # reflect across line y = x
+ANTIDIAGONAL = Symmetry(((0, -1), (-1, 0)), "a")  # reflect across line y = -x
 
 #: The paper's morphisms, keyed by their single-letter codes.
 #:
