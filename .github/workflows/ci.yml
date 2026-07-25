@@ -190,15 +190,21 @@ jobs:
           uv venv
           uv pip install . pytest "numpy==1.21.*" "matplotlib==3.5.*"
 
-      - name: Report what actually resolved
+      # --no-project throughout: a bare `uv run` re-syncs against pyproject.toml, which
+      # replaces the pinned numpy and leaves matplotlib's compiled extensions built for
+      # the old ABI ("numpy.core.multiarray failed to import"). The pins are the point of
+      # this job, so nothing here may re-resolve them.
+      - name: Report what actually resolved, and fail if the pins did not stick
         run: |
-          uv run python -c "
+          uv run --no-project python -c "
           import numpy, matplotlib
           print('numpy', numpy.__version__, '| matplotlib', matplotlib.__version__)
+          assert numpy.__version__.startswith('1.21.'), f'numpy floor not honoured: {numpy.__version__}'
+          assert matplotlib.__version__.startswith('3.5.'), f'matplotlib floor not honoured: {matplotlib.__version__}'
           "
 
       - name: Run the suite against them
-        run: uv run pytest -q
+        run: uv run --no-project pytest -q
 
   lint:
     name: Lint
