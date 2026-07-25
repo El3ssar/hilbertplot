@@ -27,6 +27,44 @@ validates `fit` instead of ignoring it.
 
 <!-- version list -->
 
+## v0.2.0 (2026-07-25)
+
+### Bug Fixes
+
+- Close the gaps found by the second review round
+  ([`9df64f4`](https://github.com/El3ssar/hilbertplot/commit/9df64f463b2619d0d19ca7d3d818a16e2c25d7d8))
+
+- Keep the new guards from costing more than they save
+  ([`bbaa464`](https://github.com/El3ssar/hilbertplot/commit/bbaa4646af8ca401aa27174277cbae22910cd34f))
+
+### Continuous Integration
+
+- Bump actions, exempt dependabot from title check, curb ruff bumps
+  ([`aa74d78`](https://github.com/El3ssar/hilbertplot/commit/aa74d7810fa542e259dfcee77c23ad9aa491374a))
+
+- Stop Dependabot from bumping ruff
+  ([`f639fc0`](https://github.com/El3ssar/hilbertplot/commit/f639fc0aa5ab67c615bf31470cfd1bd10f5248b5))
+
+- Stop the floors job re-resolving the pins it exists to test
+  ([`106b08f`](https://github.com/El3ssar/hilbertplot/commit/106b08f8bedcf0d6c2c0ff023a60c2ff020265e4))
+
+### Documentation
+
+- Add status badges and tidy the 0.1.0 changelog entry
+  ([`7d967ca`](https://github.com/El3ssar/hilbertplot/commit/7d967caae998903d0885a81c4801b50b974aef62))
+
+- Illustrate the README with generated figures
+  ([`0f245b9`](https://github.com/El3ssar/hilbertplot/commit/0f245b941fbb933141b10d60ee16157c463b8501))
+
+- Streamline the README to install + two examples
+  ([`fb53eab`](https://github.com/El3ssar/hilbertplot/commit/fb53eab38129a8e60c42160d5bfa3959677a37db))
+
+### Features
+
+- Make the arbitrary-square path fast, harden the public surface, add encode/decode
+  ([`a6ce0da`](https://github.com/El3ssar/hilbertplot/commit/a6ce0da3463acaacc6c69d349a1ef06804a817f4))
+
+
 ## v0.1.0 (2026-07-25)
 
 First public release — the complete set of 40 two-dimensional Hilbert curves,

@@ -74,7 +74,7 @@ from ._data.mapping import granulate
 from ._viz.hilbert_plot import HilbertPlot, hilbert_plot
 from ._viz.render import gallery
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "Curve",
