@@ -126,6 +126,9 @@ def granulate(data, granularity: int) -> np.ndarray:
     >>> hilbertplot.granulate([0, 2, 10, 0], 2).tolist()
     [1.0, 1.0, 5.0, 5.0]
     """
+    if isinstance(granularity, bool) or not isinstance(granularity, (int, np.integer)):
+        raise TypeError(f"granularity must be an int, got {type(granularity).__name__}")
+    granularity = int(granularity)
     if granularity < 1:
         raise ValueError(f"granularity must be >= 1, got {granularity}")
     data = np.asarray(data, dtype=float).ravel()

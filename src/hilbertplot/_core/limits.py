@@ -66,19 +66,35 @@ def set_cell_limit(cells: int | None) -> int:
     return previous
 
 
+def _gib(cells: int, bytes_per_cell: int) -> str:
+    """Format a byte count as GiB, in integer arithmetic so huge sizes cannot overflow.
+
+    ``cells`` is an unbounded Python int: at order 525 the true division ``cells * b / 2**30``
+    raises ``OverflowError`` instead of producing the helpful message this module exists to
+    give.  Above a petabyte the fractional part is meaningless anyway.
+    """
+    total = cells * bytes_per_cell
+    if total >= 2**60:  # >= 1 EiB: print exactly, no float involved
+        return f"{total // 2**30:,} GiB"
+    return f"{total / 2**30:,.1f} GiB"
+
+
 def check_cells(cells: int, what: str, *, bytes_per_cell: int = BYTES_PER_CELL) -> None:
     """Raise if materialising ``cells`` cells would exceed :func:`cell_limit`.
 
     ``what`` describes the request in the user's own terms (e.g. ``"order 20"``) so the
-    message says which argument to change.  ``bytes_per_cell`` is what *this* caller
-    actually allocates per cell -- 16 for an ``(x, y)`` pair, 1 for a stroke of a word --
-    so the quoted size is true rather than merely indicative.
+    message says which argument to change.  ``bytes_per_cell`` is the size of the array the
+    caller is about to build -- 16 for an ``(x, y)`` pair, 1 for a stroke of a word.
+
+    The quoted size is that array alone.  Peak memory runs higher, because building it takes
+    intermediates: expect roughly 1.5x for :meth:`~hilbertplot.Curve.points` and several
+    times that for the map builders, which is why the default ceiling sits well below what
+    a machine could actually hold.
     """
     if cells > _max_cells:
-        needed = cells * bytes_per_cell / 2**30
-        allowed = _max_cells * bytes_per_cell / 2**30
         raise ValueError(
-            f"{what} needs {cells:,} cells ({needed:,.1f} GiB), over the "
-            f"{_max_cells:,}-cell limit ({allowed:,.1f} GiB). Use a smaller size, or raise "
-            f"the ceiling with hilbertplot.set_cell_limit() if you have the memory."
+            f"{what} needs {cells:,} cells ({_gib(cells, bytes_per_cell)}), over the "
+            f"{_max_cells:,}-cell limit ({_gib(_max_cells, bytes_per_cell)}). Use a smaller "
+            f"size, or raise the ceiling with hilbertplot.set_cell_limit() if you have the "
+            f"memory."
         )

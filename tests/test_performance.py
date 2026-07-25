@@ -57,13 +57,28 @@ def test_grid_scales_roughly_with_area():
 
 
 def test_repeated_renders_do_not_rebuild_the_curve_from_scratch():
-    """The stroke memo must survive across calls; clearing it must be the only way out."""
+    """The stroke memo must survive across calls; clearing it must be the only way out.
+
+    Asserted on the *memo counters* rather than on elapsed time: the warm path is only a
+    few times faster than the cold one, which is well inside the noise of a shared runner,
+    and a flaky timing assertion in a repo that squash-merges on green is worse than no
+    assertion at all.  ``test_arbitrary_square_fill_...`` carries the timing signal.
+    """
     curve = hp.curve(0)
     hp.clear_cache()
-    cold = _timed(lambda: curve.word(9))
-    warm = _timed(lambda: curve.word(9))
-    assert warm < cold, f"second word(9) ({warm * 1e3:.1f} ms) not faster than first"
-    assert hp.cache_info().hits > 0
+    assert hp.cache_info().currsize == 0
+
+    curve.word(9)
+    after_cold = hp.cache_info()
+    assert after_cold.misses > 0, "a cold build should have missed the memo"
+
+    curve.word(9)
+    after_warm = hp.cache_info()
+    assert after_warm.hits > after_cold.hits, "a repeat build did not hit the memo"
+    assert after_warm.misses == after_cold.misses, "a repeat build recomputed something"
+
+    hp.clear_cache()
+    assert hp.cache_info().currsize == 0
 
 
 def test_difference_map_stays_within_reach_of_a_single_pass():

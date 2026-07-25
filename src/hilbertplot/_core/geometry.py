@@ -4,8 +4,9 @@ The functions here turn a word of ``u/d/l/r`` strokes into the ordered array of
 integer lattice points the curve visits, and provide the tools we use to *prove*
 the constructions are correct:
 
-* :func:`is_space_filling` checks that an order ``k`` curve visits every cell of the
-  ``2**k`` by ``2**k`` grid exactly once (a Hamiltonian path on the grid);
+* :func:`is_space_filling` checks that a path visits every cell of a ``side`` by ``side``
+  grid exactly once and (by default) that consecutive cells are 4-adjacent -- a Hamiltonian
+  path on the grid, for ``2**k`` and arbitrary squares alike;
 * :func:`canonical_form` reduces a point sequence modulo the sixteen square
   symmetries and reversion, so that two curves can be compared "up to rotation,
   reflection or reversion" -- the equivalence under which the paper's forty curves
@@ -134,7 +135,10 @@ def is_space_filling(points: np.ndarray, side: int, *, connected: bool = True) -
     True
     >>> hilbertplot.is_space_filling(c.points(3), 16)     # wrong side
     False
+    >>> hilbertplot.is_space_filling([[0, 0], [0, 1], [1, 1], [1, 0]], 2)   # a plain list
+    True
     """
+    points = np.asarray(points)
     if side < 1 or points.shape != (side * side, 2):
         return False
     lo = points.min(axis=0)

@@ -162,10 +162,11 @@ def _canonical_origin(
 def _split(length: int, rule: str) -> tuple[int, int]:
     """Split ``length`` into two near-equal halves, honouring a swap ``rule``.
 
-    The halves are ``length // 2`` and the remainder.  ``rule="first"`` guarantees the
-    *low* half is even and ``rule="second"`` the *high* half, swapping them when needed;
-    any other value leaves the natural order.  Forcing that parity is what keeps the
-    path connected when ``length`` is odd.
+    The halves are ``length // 2`` and the remainder.  When ``length`` is **odd** the two
+    halves differ in parity, and ``rule="first"`` makes the *low* half even while
+    ``rule="second"`` makes the *high* half even, swapping them when needed; forcing that
+    parity is what keeps the path connected.  When ``length`` is even both halves already
+    share a parity, so the swap cannot change anything and the rule has no effect.
     """
     low = length // 2
     high = length - low

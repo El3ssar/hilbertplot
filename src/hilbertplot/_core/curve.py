@@ -8,6 +8,7 @@ tidy table.
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -586,7 +587,7 @@ class Curve:
         """
         from .._viz.render import save_figure
 
-        if isinstance(path, (int, np.integer)) and isinstance(order, str):
+        if isinstance(path, (int, np.integer)) and isinstance(order, (str, os.PathLike)):
             # 0.1.0 spelled this save(order, path); fail loudly rather than confusingly.
             raise TypeError(
                 "Curve.save() now takes (path, order) so it matches HilbertPlot.save(); "

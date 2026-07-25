@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -157,13 +157,48 @@ jobs:
           uv venv /tmp/wheeltest
           VIRTUAL_ENV=/tmp/wheeltest uv pip install dist/*.whl
           VIRTUAL_ENV=/tmp/wheeltest uv run --no-project python -c "
-          import hilbertplot
+          import hilbertplot, importlib.metadata as md
           print('installed', hilbertplot.__version__, 'exports', len(hilbertplot.__all__), 'names')
           assert hilbertplot.curve('Moore').points(3).shape == (64, 2)
+          # __version__ and the distribution version are two literals kept in sync only by
+          # python-semantic-release stamping both; this is what catches them drifting.
+          assert hilbertplot.__version__ == md.version('hilbertplot'), (
+              f'__version__ {hilbertplot.__version__} != metadata {md.version(\"hilbertplot\")}')
           "
 
       - name: Metadata check
         run: uvx twine check dist/*
+
+  floors:
+    # The matrix always resolves the newest numpy/matplotlib, so the declared floors have
+    # never been executed -- and this change set rewrote the numpy-critical paths
+    # (cumsum with dtype= and out=, frombuffer, writeable-flag handling).
+    name: Oldest supported dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.10"
+          enable-cache: true
+
+      - name: Install at the declared floors
+        run: |
+          uv venv
+          uv pip install . pytest "numpy==1.21.*" "matplotlib==3.5.*"
+
+      - name: Report what actually resolved
+        run: |
+          uv run python -c "
+          import numpy, matplotlib
+          print('numpy', numpy.__version__, '| matplotlib', matplotlib.__version__)
+          "
+
+      - name: Run the suite against them
+        run: uv run pytest -q
 
   lint:
     name: Lint
@@ -187,3 +222,8 @@ jobs:
 
       - name: Ruff format check
         run: uv run ruff format --check .
+
+      - name: Lockfile is in sync with pyproject.toml
+        # Without this, editing a dependency and forgetting `uv lock` leaves every
+        # contributor's `uv run` silently re-locking and dirtying their tree.
+        run: uv lock --check

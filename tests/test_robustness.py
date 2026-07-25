@@ -451,3 +451,73 @@ def test_set_cell_limit_actually_reaches_the_guards():
     finally:
         hp.set_cell_limit(previous)
     hp.curve(0).points(6)  # restored
+
+
+# --------------------------------------------------------------------------
+# Second review round: guards whose promises did not hold
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda: np.arange(16.0),
+        lambda: np.arange(16.0).reshape(4, 4).T,
+        lambda: np.asfortranarray(np.arange(16.0).reshape(4, 4)),
+        lambda: np.arange(32.0)[::2],
+    ],
+    ids=["c-contiguous", "transposed", "fortran-order", "strided"],
+)
+def test_data_is_immutable_through_every_route(make):
+    """Freezing ndarray flags is not enough: an owner may always re-arm its own flag, and
+    reshaping a non-contiguous input yields a fresh writable owner reachable as `.base`."""
+    plot = hp.hilbert_plot(0, make())
+    before = plot.data.copy()
+    exposed = plot.data
+    with pytest.raises(ValueError, match="read-only"):
+        exposed[0] = -999.0
+    with pytest.raises(ValueError, match="WRITEABLE"):
+        exposed.setflags(write=True)
+    base = exposed.base
+    while isinstance(base, np.ndarray):
+        assert not base.flags.writeable
+        with pytest.raises(ValueError, match="WRITEABLE"):
+            base.setflags(write=True)
+        base = base.base
+    assert np.array_equal(plot.data, before)
+
+
+def test_masked_data_becomes_nan_rather_than_the_fill_value():
+    """Masked entries are missing, not zero; NaN is what the renderer draws as blank."""
+    masked = np.ma.masked_array([10.0, 20.0, 30.0, 40.0], mask=[True, False, True, False])
+    plot = hp.hilbert_plot(0, masked)
+    assert np.isnan(plot.data[0])
+    assert np.isnan(plot.data[2])
+    assert plot.data[1] == 20.0
+
+
+@pytest.mark.parametrize(
+    ("call", "kwargs"),
+    [("points", {}), ("word", {}), ("label_map", {}), ("difference_map", {})],
+)
+def test_an_absurd_order_still_reports_the_cell_limit(call, kwargs):
+    """The size arithmetic overflowed float above order 524, raising OverflowError from the
+    one function whose whole job is to fail with a helpful message."""
+    with pytest.raises(ValueError, match="cell limit"):
+        getattr(hp.curve(0), call)(600, **kwargs)
+
+
+def test_an_absurd_grid_side_still_reports_the_cell_limit():
+    with pytest.raises(ValueError, match="cell limit"):
+        hp.curve(0).grid(10**200)
+
+
+@pytest.mark.parametrize("bad", [True, False, 2.5, 3.0, "3", None])
+def test_granularity_is_type_checked_even_when_it_would_be_a_no_op(bad):
+    """`granularity=True` used to slip through as "no coarsening" and yield a wrong plot."""
+    with pytest.raises(TypeError, match="granularity must be an int"):
+        hp.hilbert_plot(0, np.arange(64.0)).image(granularity=bad)
+
+
+def test_is_space_filling_accepts_any_array_like():
+    """It is exported as the tool for checking your own path; a list is the natural literal."""
+    assert hp.is_space_filling([[0, 0], [0, 1], [1, 1], [1, 0]], 2)
+    assert not hp.is_space_filling([[0, 0], [1, 1]], 2)

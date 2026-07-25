@@ -1,7 +1,7 @@
 """The :class:`HilbertPlot` object -- data laid on a curve, rendered on demand.
 
 A :class:`HilbertPlot` just holds a curve and a data vector; it draws nothing until
-you ask.  Get one from :meth:`hilbertplot.curve.Curve.plot_data` or the
+you ask.  Get one from :meth:`hilbertplot.Curve.plot_data` or the
 :func:`hilbert_plot` shortcut, then render with :meth:`HilbertPlot.show` /
 :meth:`~HilbertPlot.save` / :meth:`~HilbertPlot.draw`, choosing the colormap,
 granularity and power-of-four fit at that point (not at construction).
@@ -133,7 +133,7 @@ class HilbertPlot:
 
     Holds only the curve and the data and draws nothing on construction; the colormap,
     granularity and power-of-four fit are all chosen at render time, so one object gives
-    you every variant.  Construct via :meth:`hilbertplot.curve.Curve.plot_data` or
+    you every variant.  Construct via :meth:`hilbertplot.Curve.plot_data` or
     :func:`hilbert_plot`.
 
     Parameters
@@ -158,9 +158,12 @@ class HilbertPlot:
         if not isinstance(curve, Curve):
             raise TypeError(f"curve must be a Curve, got {type(curve).__name__}")
         self._curve = curve
-        # own a private, read-only copy so the plot never aliases the caller's array
+        # own a private, immutable copy so the plot never aliases the caller's array
+        if np.ma.isMaskedArray(data):
+            # Masked entries are missing, not zero; NaN is what the renderer draws as blank.
+            data = np.ma.filled(data, np.nan)
         try:
-            owner = np.array(data, dtype=float)
+            owner = np.ascontiguousarray(np.array(data, dtype=float))
         except (TypeError, ValueError) as exc:
             raise TypeError(
                 f"data must be numeric and convertible to a float array; got "
@@ -168,13 +171,13 @@ class HilbertPlot:
             ) from exc
         if owner.size == 0:
             raise ValueError("data is empty; need at least one value to plot")
-        flat = owner.reshape(-1)
-        # Freeze the *owner* too, not just the flattened view: `reshape` returns a view, so
-        # leaving the base writable would let `plot.data.flags.writeable = True` succeed and
-        # silently corrupt the plot.  With the owner read-only, no view of it can re-enable.
-        owner.flags.writeable = False
-        flat.flags.writeable = False
-        self._data = flat
+        # Back the buffer with `bytes`, which numpy cannot re-arm.  Clearing the writeable
+        # flag on an ndarray is not enough: an array that *owns* its data may always turn
+        # its own flag back on, and `reshape` on a non-contiguous input yields a fresh
+        # writable owner reachable as `plot.data.base` -- so a transposed input could be
+        # mutated straight through the property.  A `frombuffer` array owns nothing and its
+        # base is immutable, which closes both routes.
+        self._data = np.frombuffer(owner.reshape(-1).tobytes(), dtype=np.float64)
 
     @property
     def curve(self) -> Curve:
@@ -185,9 +188,10 @@ class HilbertPlot:
     def data(self) -> np.ndarray:
         """numpy.ndarray: The 1-D data, as a read-only view of a private copy.
 
-        A fresh view is handed out each time, and the buffer it views is itself read-only,
-        so the writable flag cannot be flipped back on -- mutating a plot's data through
-        this property is impossible rather than merely discouraged.
+        A fresh view is handed out each time, over a buffer backed by immutable ``bytes``.
+        Neither the view nor anything reachable through ``.base`` can be made writable, so
+        mutating a plot's data through this property is impossible rather than merely
+        discouraged.  A masked array's masked entries arrive here as ``NaN``.
         """
         return self._data.view()
 
@@ -343,9 +347,9 @@ class HilbertPlot:
         otherwise a typo like ``fit="squre"`` would pass silently.
         """
         check_fit(fit)
-        values = self._data
-        if granularity != 1:
-            values = granulate(values, granularity)
+        # Always go through granulate, so `granularity` is validated even at 1 -- otherwise
+        # `granularity=True` slips past as "no coarsening" and silently yields a wrong plot.
+        values = granulate(self._data, granularity)
         n = values.size
         effective = fit
         if order is None and fit == "auto":
@@ -404,7 +408,7 @@ class HilbertPlot:
         difference : bool, default False
             Overlay the curve's strong-locality barrier -- the cells of the difference
             map above ``mean + difference_threshold * std`` -- marking where the curve
-            breaks locality (see :meth:`hilbertplot.curve.Curve.difference_map`).
+            breaks locality (see :meth:`hilbertplot.Curve.difference_map`).
         difference_threshold : float, default 1.0
             Std multiplier for the barrier: **higher marks fewer, worse sites**; lower
             marks more.
@@ -420,8 +424,9 @@ class HilbertPlot:
             (Fourier mode) as on :meth:`fourier` -- compress the dynamic range, and drop the
             central DC spike.  Both default to ``True``.
         colorbar : bool, default False
-            Attach a colourbar to the axes.  The image itself is always available as
-            ``ax.images[-1]`` if you want to build one yourself.
+            Attach a colourbar to the axes.  The data image is always ``ax.images[0]`` if
+            you would rather build one yourself -- note the ``difference`` overlay, when
+            present, is appended after it.
         **imshow_kw
             Extra keyword arguments forwarded to ``matplotlib``'s ``imshow`` -- e.g.
             ``norm=matplotlib.colors.LogNorm()`` for heavy-tailed data.
