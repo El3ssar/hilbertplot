@@ -20,6 +20,7 @@ import numpy as np
 __all__ = [
     "FITS",
     "check_fit",
+    "check_granularity",
     "difference_map",
     "fourier_spectrum",
     "gather",
@@ -100,6 +101,24 @@ def resolve_order(n: int, order: int | None, fit: str) -> int:
     raise ValueError(f"fit must be 'pad' or 'truncate' here, got {fit!r}")
 
 
+def check_granularity(granularity: int) -> int:
+    """Return ``granularity`` if it is a usable block length, else raise.
+
+    Split out of :func:`granulate` so a caller can validate without paying for the copy
+    ``granulate`` makes -- at granularity 1 the transform is the identity, and the render
+    path resolves it on every call.
+
+    >>> check_granularity(4)
+    4
+    """
+    if isinstance(granularity, bool) or not isinstance(granularity, (int, np.integer)):
+        raise TypeError(f"granularity must be an int, got {type(granularity).__name__}")
+    granularity = int(granularity)
+    if granularity < 1:
+        raise ValueError(f"granularity must be >= 1, got {granularity}")
+    return granularity
+
+
 def granulate(data, granularity: int) -> np.ndarray:
     """Return the *l-granularity* representation of ``data`` (same length as the input).
 
@@ -126,11 +145,7 @@ def granulate(data, granularity: int) -> np.ndarray:
     >>> hilbertplot.granulate([0, 2, 10, 0], 2).tolist()
     [1.0, 1.0, 5.0, 5.0]
     """
-    if isinstance(granularity, bool) or not isinstance(granularity, (int, np.integer)):
-        raise TypeError(f"granularity must be an int, got {type(granularity).__name__}")
-    granularity = int(granularity)
-    if granularity < 1:
-        raise ValueError(f"granularity must be >= 1, got {granularity}")
+    granularity = check_granularity(granularity)
     data = np.asarray(data, dtype=float).ravel()
     if granularity == 1:
         return data.copy()

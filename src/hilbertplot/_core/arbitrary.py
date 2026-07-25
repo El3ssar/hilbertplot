@@ -123,6 +123,10 @@ _REVERSED = (3, 2, 1, 0)
 
 #: Recurse in Python down to regions of at most this many cells, then use a memoised
 #: block.  Tuned empirically: smaller pays more Python frames, larger inflates the memo.
+#:
+#: **Must be at least 2.** This is a termination condition, not only a speed knob: at 1 a
+#: ``2 x 1`` region would recurse, and ``_split(1, ...)`` yields a zero-length half whose
+#: bounding box does not shrink, so the recursion never bottoms out.
 _BLOCK_CELLS = 4096
 
 

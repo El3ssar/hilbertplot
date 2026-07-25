@@ -5,6 +5,7 @@ enforces is that such an input either works or raises a *specific, actionable* e
 never a numpy ``RuntimeWarning``, never a silently wrong result.
 """
 
+import pathlib
 import re
 import warnings
 
@@ -521,3 +522,69 @@ def test_is_space_filling_accepts_any_array_like():
     """It is exported as the tool for checking your own path; a list is the natural literal."""
     assert hp.is_space_filling([[0, 0], [0, 1], [1, 1], [1, 0]], 2)
     assert not hp.is_space_filling([[0, 0], [1, 1]], 2)
+
+
+# --------------------------------------------------------------------------
+# Third review round: cost of the guards themselves
+# --------------------------------------------------------------------------
+def test_construction_does_not_triple_peak_memory():
+    """The immutability mechanism must not cost an extra full copy of the data.
+
+    Freezing via `tobytes()` would make three copies live at once (caller's array, the
+    private copy, the bytes); a read-only memoryview gives the same guarantee at two.
+    """
+    import subprocess
+    import sys
+
+    script = """
+import numpy as np, resource, hilbertplot as hp
+n = 8_000_000
+data = np.arange(n, dtype=float)
+mib = n * 8 / 2**20
+plot = hp.hilbert_plot(0, data)
+peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+assert plot.data[0] == 0.0
+print(round(peak / mib, 2))
+"""
+    ratio = float(
+        subprocess.run(
+            [sys.executable, "-c", script], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    )
+    assert ratio < 2.8, f"peak was {ratio:.2f}x the data; a third full copy has crept in"
+
+
+def test_rendering_does_not_copy_the_data_at_granularity_one():
+    """`_layout` runs on every render; at granularity 1 the transform is the identity."""
+    plot = hp.hilbert_plot(0, np.arange(1024.0))
+    values, _, _ = plot._layout(1, None, "auto")
+    assert values is plot._data, "granularity 1 copied the whole vector for nothing"
+    coarsened, _, _ = plot._layout(4, None, "auto")
+    assert coarsened is not plot._data
+
+
+def test_a_rejected_draw_call_leaks_no_figure():
+    """Argument checks must run before the figure is created, not after."""
+    pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LogNorm
+
+    plot = hp.hilbert_plot(0, np.arange(1.0, 65.0))
+    plt.close("all")
+    for _ in range(25):
+        with pytest.raises(ValueError, match="either norm= or vmin"):
+            plot.draw(norm=LogNorm(), vmin=1)
+        with pytest.raises(TypeError, match="did you mean"):
+            plot.draw(granularty=2)
+    assert plt.get_fignums() == [], "rejected draw() calls left figures open"
+
+
+def test_block_cells_floor_is_documented_and_honoured():
+    """`_BLOCK_CELLS` is a termination condition, not only a speed knob: below 2 the
+    recursion never bottoms out, so the floor must be stated where it is tuned."""
+    from hilbertplot._core import arbitrary
+
+    assert arbitrary._BLOCK_CELLS >= 2
+    assert "at least 2" in arbitrary.__doc__ or "Must be at least 2" in (
+        pathlib.Path(arbitrary.__file__).read_text()
+    )

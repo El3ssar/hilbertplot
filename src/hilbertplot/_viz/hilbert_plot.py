@@ -21,7 +21,14 @@ import numpy as np
 
 from .._core.curve import Curve
 from .._core.curve import curve as _lookup_curve
-from .._data.mapping import check_fit, granulate, resolve_order, scatter, square_side
+from .._data.mapping import (
+    check_fit,
+    check_granularity,
+    granulate,
+    resolve_order,
+    scatter,
+    square_side,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -171,13 +178,14 @@ class HilbertPlot:
             ) from exc
         if owner.size == 0:
             raise ValueError("data is empty; need at least one value to plot")
-        # Back the buffer with `bytes`, which numpy cannot re-arm.  Clearing the writeable
-        # flag on an ndarray is not enough: an array that *owns* its data may always turn
-        # its own flag back on, and `reshape` on a non-contiguous input yields a fresh
-        # writable owner reachable as `plot.data.base` -- so a transposed input could be
-        # mutated straight through the property.  A `frombuffer` array owns nothing and its
-        # base is immutable, which closes both routes.
-        self._data = np.frombuffer(owner.reshape(-1).tobytes(), dtype=np.float64)
+        # View the buffer through a read-only memoryview.  Simply clearing the writeable
+        # flag is not enough: an array that *owns* its data may always turn its own flag
+        # back on, so `plot.data.base.flags.writeable = True` -- a routine numpy idiom --
+        # would re-arm the private copy and let the plot be corrupted.  Going through a
+        # read-only memoryview makes `plot.data` and its base un-re-armable at no extra
+        # allocation.  (Copying to `bytes` would also hide `owner`, but at 3x peak memory
+        # instead of 2x, which for a multi-gigabyte vector is the worse failure.)
+        self._data = np.frombuffer(memoryview(owner.reshape(-1)).toreadonly(), dtype=np.float64)
 
     @property
     def curve(self) -> Curve:
@@ -188,10 +196,9 @@ class HilbertPlot:
     def data(self) -> np.ndarray:
         """numpy.ndarray: The 1-D data, as a read-only view of a private copy.
 
-        A fresh view is handed out each time, over a buffer backed by immutable ``bytes``.
-        Neither the view nor anything reachable through ``.base`` can be made writable, so
-        mutating a plot's data through this property is impossible rather than merely
-        discouraged.  A masked array's masked entries arrive here as ``NaN``.
+        A fresh view is handed out each time, over a read-only buffer, so neither the array
+        you get back nor its ``.base`` can be written to or made writable again -- a plot
+        cannot be corrupted by accident.  A masked array's masked entries arrive as ``NaN``.
         """
         return self._data.view()
 
@@ -347,9 +354,12 @@ class HilbertPlot:
         otherwise a typo like ``fit="squre"`` would pass silently.
         """
         check_fit(fit)
-        # Always go through granulate, so `granularity` is validated even at 1 -- otherwise
-        # `granularity=True` slips past as "no coarsening" and silently yields a wrong plot.
-        values = granulate(self._data, granularity)
+        # Validate unconditionally -- `granularity=True` must not slip past as "no
+        # coarsening" -- but only pay for the transform when it does something.  At 1 it is
+        # the identity, and every render path comes through here, so copying the whole
+        # vector each time would cost a full allocation per call for nothing.
+        granularity = check_granularity(granularity)
+        values = self._data if granularity == 1 else granulate(self._data, granularity)
         n = values.size
         effective = fit
         if order is None and fit == "auto":
@@ -447,14 +457,10 @@ class HilbertPlot:
         from .render import bare_axes, pyplot
 
         plt = pyplot()
+        # Every argument-only check happens before a figure exists, so a rejected call
+        # cannot leak one -- matplotlib keeps open figures alive globally, and a loop that
+        # sweeps normalisations catching ValueError would otherwise grow without bound.
         _reject_unknown_kwargs(imshow_kw)
-        values, points, side = self._layout(granularity, order, fit)
-        image = scatter(points, values, side, fill)
-        if fourier:
-            image = fourier_spectrum(image, log=log, window=window, remove_dc=remove_dc)
-            difference = False  # not meaningful on a spectrum
-        if ax is None:
-            _, ax = plt.subplots(figsize=(5, 5))
         # A caller-supplied `norm` carries its own limits, and matplotlib refuses to accept
         # both; so once a norm is given we must not fill in our default vmin/vmax.
         caller_norm = imshow_kw.get("norm") is not None
@@ -463,6 +469,13 @@ class HilbertPlot:
                 "pass either norm= or vmin=/vmax=, not both -- set the limits on the norm "
                 "itself, e.g. LogNorm(vmin=1, vmax=1000)"
             )
+        values, points, side = self._layout(granularity, order, fit)
+        image = scatter(points, values, side, fill)
+        if fourier:
+            image = fourier_spectrum(image, log=log, window=window, remove_dc=remove_dc)
+            difference = False  # not meaningful on a spectrum
+        if ax is None:
+            _, ax = plt.subplots(figsize=(5, 5))
         if fourier and not caller_norm and (vmin is None or vmax is None):
             # percentile contrast so faint spectral structure is visible by default
             lo, hi = np.percentile(image, [50.0, 99.8])
