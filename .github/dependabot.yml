@@ -23,9 +23,7 @@ updates:
       - "dependencies"
       - "python"
     ignore:
-      # ruff is pinned exact; adopt minor/major bumps deliberately (they can add
-      # or tighten lint/format rules that turn CI red), not on Dependabot's schedule.
+      # Don't let Dependabot bump ruff at all. Its releases add/tighten lint & format
+      # rules that can turn CI red (0.16 even reformats the README code blocks), so
+      # ruff is pinned exact and upgraded deliberately in its own PR.
       - dependency-name: "ruff"
-        update-types:
-          - "version-update:semver-minor"
-          - "version-update:semver-major"
