@@ -63,6 +63,47 @@ validates `fit` instead of ignoring it.
 
 <!-- version list -->
 
+## v1.0.2 (2026-11-01)
+
+### Bug Fixes
+
+- Include plotting dependencies and add complete documentation
+  ([#8](https://github.com/El3ssar/hilbertplot/pull/8),
+  [`53ac7aa`](https://github.com/El3ssar/hilbertplot/commit/53ac7aad360ffb9ebe3d641570a99940312c30aa))
+
+- Install Matplotlib by default without a plotting extra
+  ([#8](https://github.com/El3ssar/hilbertplot/pull/8),
+  [`53ac7aa`](https://github.com/El3ssar/hilbertplot/commit/53ac7aad360ffb9ebe3d641570a99940312c30aa))
+
+### Documentation
+
+- Add guides, API reference and GitHub Pages showcase
+  ([#8](https://github.com/El3ssar/hilbertplot/pull/8),
+  [`53ac7aa`](https://github.com/El3ssar/hilbertplot/commit/53ac7aad360ffb9ebe3d641570a99940312c30aa))
+
+- Add hero landing with installation and starting points
+  ([#8](https://github.com/El3ssar/hilbertplot/pull/8),
+  [`53ac7aa`](https://github.com/El3ssar/hilbertplot/commit/53ac7aad360ffb9ebe3d641570a99940312c30aa))
+
+- Add verified Zenodo DOI and citation badge
+  ([`ae60380`](https://github.com/El3ssar/hilbertplot/commit/ae60380d93b836228dd87acf92db3f222bda5fb5))
+
+- Align theme highlights and rebuild README datasets
+  ([#8](https://github.com/El3ssar/hilbertplot/pull/8),
+  [`53ac7aa`](https://github.com/El3ssar/hilbertplot/commit/53ac7aad360ffb9ebe3d641570a99940312c30aa))
+
+- Complete visual guides and NumPy-style API documentation
+  ([#8](https://github.com/El3ssar/hilbertplot/pull/8),
+  [`53ac7aa`](https://github.com/El3ssar/hilbertplot/commit/53ac7aad360ffb9ebe3d641570a99940312c30aa))
+
+- Link the published documentation site ([#8](https://github.com/El3ssar/hilbertplot/pull/8),
+  [`53ac7aa`](https://github.com/El3ssar/hilbertplot/commit/53ac7aad360ffb9ebe3d641570a99940312c30aa))
+
+- Reorganize curve theory and replace analysis examples
+  ([#8](https://github.com/El3ssar/hilbertplot/pull/8),
+  [`53ac7aa`](https://github.com/El3ssar/hilbertplot/commit/53ac7aad360ffb9ebe3d641570a99940312c30aa))
+
+
 ## v1.0.1 (2026-11-01)
 
 ### Bug Fixes
