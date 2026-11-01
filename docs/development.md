@@ -18,8 +18,12 @@ python -m http.server 8000 --directory docs/_build/html
 
 Open `http://localhost:8000`. The documentation build generates gallery images from the
 public API and reads function signatures/docstrings for the reference pages. Generated
-images and HTML are ignored by Git. `scripts/check_docs.py` executes the narrative Python
+gallery images and HTML are ignored by Git. `scripts/check_docs.py` executes the narrative Python
 examples and checks that every public function is represented in the reference.
+
+The social preview poster is tracked in `docs/_static/social-preview.png`. Regenerate
+it with `uv run python scripts/docs_social.py`. The HTML checks validate its dimensions
+and the static Open Graph and Twitter metadata on every page.
 
 ## Release process
 

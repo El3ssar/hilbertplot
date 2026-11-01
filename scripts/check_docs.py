@@ -31,6 +31,36 @@ def check_html():
     if not pages:
         raise AssertionError("Build HTML before running --html")
     for path, page in pages.items():
+        required = {
+            "description": page.select_one('meta[name="description"]'),
+            "og:title": page.select_one('meta[property="og:title"]'),
+            "og:description": page.select_one('meta[property="og:description"]'),
+            "og:url": page.select_one('meta[property="og:url"]'),
+            "og:image": page.select_one('meta[property="og:image"]'),
+            "og:image:alt": page.select_one('meta[property="og:image:alt"]'),
+            "twitter:title": page.select_one('meta[name="twitter:title"]'),
+            "twitter:description": page.select_one('meta[name="twitter:description"]'),
+            "twitter:image": page.select_one('meta[name="twitter:image"]'),
+            "twitter:image:alt": page.select_one('meta[name="twitter:image:alt"]'),
+        }
+        for name, node in required.items():
+            if node is None or not node.get("content", "").strip():
+                raise AssertionError(f"Missing sharing metadata: {path.name}: {name}")
+        canonical = page.select_one('link[rel="canonical"]')
+        if canonical is None or canonical.get("href") != required["og:url"]["content"]:
+            raise AssertionError(f"Canonical and social URLs disagree: {path.name}")
+        for name in ("og:url", "og:image", "twitter:image"):
+            if not required[name]["content"].startswith("https://el3ssar.github.io/hilbertplot/"):
+                raise AssertionError(f"Sharing URL must be absolute: {path.name}: {name}")
+        if required["og:image"]["content"] != required["twitter:image"]["content"]:
+            raise AssertionError(f"Sharing images disagree: {path.name}")
+        card = page.select_one('meta[name="twitter:card"]')
+        if card is None or card.get("content") != "summary_large_image":
+            raise AssertionError(f"Missing large social card: {path.name}")
+        for dimension, expected in (("width", "1200"), ("height", "630")):
+            node = page.select_one(f'meta[property="og:image:{dimension}"]')
+            if node is None or node.get("content") != expected:
+                raise AssertionError(f"Wrong sharing image {dimension}: {path.name}")
         for node in page.select("a[href], link[href], img[src], script[src]"):
             address = urlsplit(node.get("href", node.get("src", "")))
             if address.scheme or address.netloc:
@@ -52,6 +82,11 @@ def check_html():
                 raise AssertionError(f"Missing anchor: {target}#{address.fragment}")
         if page.select_one("article p") and ".. py:function::" in page.get_text():
             raise AssertionError(f"Unrendered API markup: {path}")
+    from PIL import Image
+
+    with Image.open(root / "_static" / "social-preview.png") as poster:
+        if poster.size != (1200, 630) or poster.format != "PNG":
+            raise AssertionError("Sharing poster must be a 1200 by 630 PNG")
     svg = ElementTree.parse(root / "_static" / "favicon.svg")
     polyline = svg.find("{http://www.w3.org/2000/svg}polyline")
     vertices = np.array(
@@ -61,7 +96,8 @@ def check_html():
     np.testing.assert_array_equal(vertices[:, 0], 10 + 6 * expected[:, 0])
     np.testing.assert_array_equal(vertices[:, 1], 54 - 6 * expected[:, 1])
     print(
-        f"Checked {len(pages)} HTML pages: local links, anchors, assets and exact order-3 favicon."
+        f"Checked {len(pages)} HTML pages: sharing metadata, local links, anchors, "
+        "assets and exact order-3 favicon."
     )
 
 

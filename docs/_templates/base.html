@@ -1,0 +1,21 @@
+{% extends "!base.html" %}
+
+{% block extrahead %}
+{{ super() }}
+<meta name="description" content="{{ social_description|e }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="hilbertplot">
+<meta property="og:title" content="{{ social_title|striptags|e }}">
+<meta property="og:description" content="{{ social_description|e }}">
+<meta property="og:url" content="{{ social_url|e }}">
+<meta property="og:image" content="{{ social_image|e }}">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="hilbertplot: plot arrays along Hilbert curves and convert images to sequences. Order-four Hilbert curve with entry and exit marked.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ social_title|striptags|e }}">
+<meta name="twitter:description" content="{{ social_description|e }}">
+<meta name="twitter:image" content="{{ social_image|e }}">
+<meta name="twitter:image:alt" content="hilbertplot documentation, featuring the order-four Hilbert curve.">
+{% endblock %}

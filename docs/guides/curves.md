@@ -20,8 +20,8 @@ are the standard Hilbert curve (index 0) and Liu4 (index 5):
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="../_static/generated/kernel-hilbert.png" alt="Order-two Hilbert path with numbered visits, entry and exit"><figcaption>Hilbert kernel: 16 visits. Entry (0,0), exit (3,0).</figcaption></figure>
-<figure><img src="../_static/generated/kernel-liu4.png" alt="Order-two Liu4 path with numbered visits, entry and exit"><figcaption>Liu4 kernel: 16 visits. Entry (0,1), exit (2,0).</figcaption></figure>
+<figure><img src="../_static/generated/kernel-hilbert.png" alt="Order-two Hilbert path with numbered visits, entry and exit" width="777" height="835"><figcaption>Hilbert kernel: 16 visits. Entry (0,0), exit (3,0).</figcaption></figure>
+<figure><img src="../_static/generated/kernel-liu4.png" alt="Order-two Liu4 path with numbered visits, entry and exit" width="777" height="835"><figcaption>Liu4 kernel: 16 visits. Entry (0,1), exit (2,0).</figcaption></figure>
 </div>
 ```
 
@@ -66,7 +66,7 @@ right two are rotated 90° clockwise. The rotations differ, but the kernel type
 is the same in every quadrant. That makes the construction **homogeneous**.
 
 ```{raw} html
-<figure><img src="../_static/generated/construction-moore.png" alt="Order-three Moore construction with quadrant boundaries, directions and connectors"></figure>
+<figure><img src="../_static/generated/construction-moore.png" alt="Order-three Moore construction with quadrant boundaries, directions and connectors" width="916" height="1073"></figure>
 ```
 
 Here are the actual endpoints in the assembled 8 × 8 grid. Coordinates are `(x,y)`,
@@ -116,7 +116,7 @@ that the resulting curve is invalid. The terminology and construction are from
 For **Improper1, curve 6**, at order 3:
 
 ```{raw} html
-<figure><img src="../_static/generated/construction-improper.png" alt="Improper1 assembled from four Liu4 kernels, with reversed quadrant paths marked"></figure>
+<figure><img src="../_static/generated/construction-improper.png" alt="Improper1 assembled from four Liu4 kernels, with reversed quadrant paths marked" width="916" height="1073"></figure>
 ```
 
 | Quadrant | Kernel | Placement and traversal | Entry | Exit |
@@ -145,7 +145,7 @@ The quadrants therefore contain **two different lower-order paths**,
 not merely differently oriented copies of one path. It is inhomogeneous.
 
 ```{raw} html
-<figure><img src="../_static/generated/construction-mixed.png" alt="Curve twelve using Liu2 in the bottom quadrants and Liu4 in the top quadrants"></figure>
+<figure><img src="../_static/generated/construction-mixed.png" alt="Curve twelve using Liu2 in the bottom quadrants and Liu4 in the top quadrants" width="916" height="1073"></figure>
 ```
 
 | Quadrant | Kernel at order 2 | Placement and traversal |

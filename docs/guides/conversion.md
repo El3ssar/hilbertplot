@@ -78,9 +78,9 @@ No pixels are silently cropped, skipped, or assigned a different curve.
 
 ```{raw} html
 <div class="plot-three">
-<figure><img src="../_static/generated/rgb-input.png" alt="Original RGB test pattern"></figure>
-<figure><img src="../_static/generated/rgb-restored.png" alt="Identical pattern reconstructed with the same curve"></figure>
-<figure><img src="../_static/generated/rgb-permuted.png" alt="Pixels rearranged by writing with curve twelve"></figure>
+<figure><img src="../_static/generated/rgb-input.png" alt="Original RGB test pattern" width="782" height="826"></figure>
+<figure><img src="../_static/generated/rgb-restored.png" alt="Identical pattern reconstructed with the same curve" width="782" height="826"></figure>
+<figure><img src="../_static/generated/rgb-permuted.png" alt="Pixels rearranged by writing with curve twelve" width="782" height="826"></figure>
 </div>
 ```
 

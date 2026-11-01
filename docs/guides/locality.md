@@ -17,10 +17,10 @@ A single-cell grid returns zero.
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="../_static/generated/locality-0.png" alt="Hilbert difference field and its color scale"></figure>
-<figure><img src="../_static/generated/locality-1.png" alt="Moore difference field on the same scale"></figure>
-<figure><img src="../_static/generated/locality-12.png" alt="Curve twelve difference field on the same scale"></figure>
-<figure><img src="../_static/generated/locality-24.png" alt="Curve twenty-four difference field on the same scale"></figure>
+<figure><img src="../_static/generated/locality-0.png" alt="Hilbert difference field and its color scale" width="880" height="803"></figure>
+<figure><img src="../_static/generated/locality-1.png" alt="Moore difference field on the same scale" width="880" height="803"></figure>
+<figure><img src="../_static/generated/locality-12.png" alt="Curve twelve difference field on the same scale" width="880" height="803"></figure>
+<figure><img src="../_static/generated/locality-24.png" alt="Curve twenty-four difference field on the same scale" width="880" height="803"></figure>
 </div>
 ```
 

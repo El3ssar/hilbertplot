@@ -49,12 +49,18 @@ def build(output: Path):
 
     def render_theme(dark):
         bg, fg, edge = (
-            ("#171d27", "#dce5f1", "#465469") if dark else ("#ffffff", "#243348", "#c7d1df")
+            ("#171d1d", "#e8ece5", "#343e39") if dark else ("#fbfaf7", "#202725", "#dedfd8")
         )
         blue, orange, purple = (
-            ("#83b4f2", "#f2b36b", "#c9a1ed") if dark else ("#2864a0", "#b56716", "#8452a4")
+            ("#92bede", "#d6a27e", "#bba4cf") if dark else ("#285f86", "#a56943", "#7f659a")
         )
-        kernel_colors = {0: blue, 1: "#4ca497", 3: purple, 4: "#ce7393", 5: orange}
+        kernel_colors = {
+            0: blue,
+            1: "#8fbaaa" if dark else "#4b7b6b",
+            3: purple,
+            4: "#ce7393",
+            5: orange,
+        }
         suffix = "-dark" if dark else ""
         with plt.rc_context(
             {

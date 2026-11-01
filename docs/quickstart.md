@@ -49,9 +49,9 @@ assign colours to categories.
 
 ```{raw} html
 <div class="plot-three">
-<figure><img src="_static/generated/color-sequential.png" alt="Sequential colormap on signed measurements"><figcaption>Sequential: color increases across the full numeric range.</figcaption></figure>
-<figure><img src="_static/generated/color-diverging.png" alt="Diverging colormap centered on zero"><figcaption>Diverging: zero is neutral; negative and positive values have different hues.</figcaption></figure>
-<figure><img src="_static/generated/color-custom.png" alt="Custom three-stop gradient"><figcaption>Custom gradient: the supplied colors are interpolation stops.</figcaption></figure>
+<figure><img src="_static/generated/color-sequential.png" alt="Sequential colormap on signed measurements" width="745" height="790"><figcaption>Sequential: color increases across the full numeric range.</figcaption></figure>
+<figure><img src="_static/generated/color-diverging.png" alt="Diverging colormap centered on zero" width="745" height="790"><figcaption>Diverging: zero is neutral; negative and positive values have different hues.</figcaption></figure>
+<figure><img src="_static/generated/color-custom.png" alt="Custom three-stop gradient" width="745" height="790"><figcaption>Custom gradient: the supplied colors are interpolation stops.</figcaption></figure>
 </div>
 ```
 
@@ -89,7 +89,7 @@ NaNs and masked samples are transparent in the data image. Infinities are reject
 Replace infinities using an explicit policy appropriate to the data before plotting.
 
 ```{raw} html
-<figure><img src="_static/generated/missing.png" alt="A missing sequence interval displayed as empty cells"></figure>
+<figure><img src="_static/generated/missing.png" alt="A missing sequence interval displayed as empty cells" width="767" height="673"></figure>
 ```
 
 ## Curve rendering
@@ -100,7 +100,7 @@ order. Automatic mode uses lines below order 8 and filled cells at larger orders
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="_static/generated/mode-line.png" alt="Hilbert curve drawn as a line"><figcaption>Line mode shows the connected path.</figcaption></figure>
-<figure><img src="_static/generated/mode-fill.png" alt="Hilbert cells colored by visit order"><figcaption>Fill mode shows visit order as a field of colored cells.</figcaption></figure>
+<figure><img src="_static/generated/mode-line.png" alt="Hilbert curve drawn as a line" width="737" height="781"><figcaption>Line mode shows the connected path.</figcaption></figure>
+<figure><img src="_static/generated/mode-fill.png" alt="Hilbert cells colored by visit order" width="737" height="781"><figcaption>Fill mode shows visit order as a field of colored cells.</figcaption></figure>
 </div>
 ```
