@@ -37,8 +37,8 @@ The index arrays differ because the curves visit the cells in different orders.
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="../_static/generated/labels-hilbert.png" alt="Hilbert visit indices zero to fifteen"></figure>
-<figure><img src="../_static/generated/labels-moore.png" alt="Moore visit indices zero to fifteen"></figure>
+<figure><img src="../_static/generated/labels-hilbert.png" alt="Hilbert visit indices zero to fifteen" width="910" height="954"></figure>
+<figure><img src="../_static/generated/labels-moore.png" alt="Moore visit indices zero to fifteen" width="910" height="954"></figure>
 </div>
 ```
 

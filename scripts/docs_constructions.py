@@ -117,7 +117,7 @@ def catalog_assets(output):
     from html import escape
 
     items = []
-    colors = {"proper": "#477ab4", "improper": "#b37a3e", "inhomogeneous": "#9470b5"}
+    colors = {"proper": "#4b7d9f", "improper": "#b07a55", "inhomogeneous": "#927dab"}
     for info in hp.curves.catalog():
         index = info["index"]
         points = hp.curves.points(index, order=3)
@@ -138,7 +138,8 @@ def catalog_assets(output):
         kernels = ", ".join(map(str, info["kernels"]))
         items.append(
             f'<figure><a href="_static/generated/catalog-{index}.svg">'
-            f'<img src="_static/generated/catalog-{index}.svg" alt="{label}, order 3"></a>'
+            f'<img src="_static/generated/catalog-{index}.svg" alt="{label}, order 3" '
+            'width="168" height="168" loading="lazy"></a>'
             f"<figcaption><strong>{label}</strong><span>{kind}; kernels {kernels}</span>"
             "</figcaption></figure>"
         )

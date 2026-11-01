@@ -13,8 +13,8 @@ then `log1p` display scaling.
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="_static/generated/fourier-input.png" alt="One million Thue-Morse terms on the Hilbert grid"></figure>
-<figure><img src="_static/generated/fourier-spectrum.png" alt="Centred 2-D Fourier magnitude with Hann window"></figure>
+<figure><img src="_static/generated/fourier-input.png" alt="One million Thue-Morse terms on the Hilbert grid" width="964" height="1008"></figure>
+<figure><img src="_static/generated/fourier-spectrum.png" alt="Centred 2-D Fourier magnitude with Hann window" width="964" height="1007"></figure>
 </div>
 ```
 
@@ -29,8 +29,8 @@ changes this spatial spectrum. [Reproduction and interpretation](guides/fourier.
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="_static/generated/granularity-input.png" alt="Interleaved periodic runs without averaging"></figure>
-<figure><img src="_static/generated/granularity-result.png" alt="The same runs with granularity four"></figure>
+<figure><img src="_static/generated/granularity-input.png" alt="Interleaved periodic runs without averaging" width="737" height="781"></figure>
+<figure><img src="_static/generated/granularity-result.png" alt="The same runs with granularity four" width="737" height="781"></figure>
 </div>
 ```
 
@@ -45,10 +45,10 @@ The regions are distinguished by response to averaging, not by different input m
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="_static/generated/locality-0.png" alt="Visit-index distance field for curve 0 on the shared log scale"></figure>
-<figure><img src="_static/generated/locality-1.png" alt="Visit-index distance field for curve 1 on the shared log scale"></figure>
-<figure><img src="_static/generated/locality-12.png" alt="Visit-index distance field for curve 12 on the shared log scale"></figure>
-<figure><img src="_static/generated/locality-24.png" alt="Visit-index distance field for curve 24 on the shared log scale"></figure>
+<figure><img src="_static/generated/locality-0.png" alt="Visit-index distance field for curve 0 on the shared log scale" width="880" height="803"></figure>
+<figure><img src="_static/generated/locality-1.png" alt="Visit-index distance field for curve 1 on the shared log scale" width="880" height="803"></figure>
+<figure><img src="_static/generated/locality-12.png" alt="Visit-index distance field for curve 12 on the shared log scale" width="880" height="803"></figure>
+<figure><img src="_static/generated/locality-24.png" alt="Visit-index distance field for curve 24 on the shared log scale" width="880" height="803"></figure>
 </div>
 ```
 
@@ -62,9 +62,9 @@ small and large distances visible. [Field definition and numeric output](guides/
 
 ```{raw} html
 <div class="plot-three">
-<figure><img src="_static/generated/rgb-input.png" alt="Original RGB test pattern"></figure>
-<figure><img src="_static/generated/rgb-restored.png" alt="Identical pattern reconstructed with the same curve"></figure>
-<figure><img src="_static/generated/rgb-permuted.png" alt="Pixels rearranged by writing with curve twelve"></figure>
+<figure><img src="_static/generated/rgb-input.png" alt="Original RGB test pattern" width="782" height="826"></figure>
+<figure><img src="_static/generated/rgb-restored.png" alt="Identical pattern reconstructed with the same curve" width="782" height="826"></figure>
+<figure><img src="_static/generated/rgb-permuted.png" alt="Pixels rearranged by writing with curve twelve" width="782" height="826"></figure>
 </div>
 ```
 
@@ -78,8 +78,8 @@ placement while retaining the pixels. [Conversion guarantees](guides/conversion.
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="_static/generated/norm-linear.png" alt="Positive values with linear color normalization"></figure>
-<figure><img src="_static/generated/norm-log.png" alt="The same values with logarithmic color normalization"></figure>
+<figure><img src="_static/generated/norm-linear.png" alt="Positive values with linear color normalization" width="877" height="771"></figure>
+<figure><img src="_static/generated/norm-log.png" alt="The same values with logarithmic color normalization" width="881" height="771"></figure>
 </div>
 ```
 

@@ -20,8 +20,8 @@ Both have mean 1/2, so the unaveraged plot does not distinguish the runs by brig
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="../_static/generated/granularity-input.png" alt="Interleaved periodic runs without averaging"></figure>
-<figure><img src="../_static/generated/granularity-result.png" alt="The same runs with granularity four"></figure>
+<figure><img src="../_static/generated/granularity-input.png" alt="Interleaved periodic runs without averaging" width="737" height="781"></figure>
+<figure><img src="../_static/generated/granularity-result.png" alt="The same runs with granularity four" width="737" height="781"></figure>
 </div>
 ```
 
@@ -57,7 +57,7 @@ the interpretation of brightness changes.
 ## Block means and the choice of g
 
 ```{raw} html
-<figure><img src="../_static/generated/block_means.png" alt="Period-four and period-six samples and their granularity-four means"></figure>
+<figure><img src="../_static/generated/block_means.png" alt="Period-four and period-six samples and their granularity-four means" width="1682" height="662"></figure>
 ```
 
 Choosing $g$ is part of the analysis. A multiple of both periods removes the distinction:
@@ -66,9 +66,9 @@ short block, if present, is averaged separately.
 
 ```{raw} html
 <div class="plot-three">
-<figure><img src="../_static/generated/granularity-1.png" alt="Periodic regions at granularity 1"></figure>
-<figure><img src="../_static/generated/granularity-4.png" alt="Periodic regions at granularity 4"></figure>
-<figure><img src="../_static/generated/granularity-12.png" alt="Periodic regions at granularity 12"></figure>
+<figure><img src="../_static/generated/granularity-1.png" alt="Periodic regions at granularity 1" width="745" height="790"></figure>
+<figure><img src="../_static/generated/granularity-4.png" alt="Periodic regions at granularity 4" width="745" height="790"></figure>
+<figure><img src="../_static/generated/granularity-12.png" alt="Periodic regions at granularity 12" width="745" height="790"></figure>
 </div>
 ```
 

@@ -12,8 +12,8 @@ This example uses $4^{10}=1,048,576$ terms on a $1024\times1024$ grid.
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="../_static/generated/fourier-input.png" alt="One million Thue-Morse terms on the Hilbert grid"></figure>
-<figure><img src="../_static/generated/fourier-spectrum.png" alt="Centred 2-D Fourier magnitude with Hann window"></figure>
+<figure><img src="../_static/generated/fourier-input.png" alt="One million Thue-Morse terms on the Hilbert grid" width="964" height="1008"></figure>
+<figure><img src="../_static/generated/fourier-spectrum.png" alt="Centred 2-D Fourier magnitude with Hann window" width="964" height="1007"></figure>
 </div>
 ```
 
@@ -74,8 +74,8 @@ Borders receive zero weight; the centre receives the largest weight.
 
 ```{raw} html
 <div class="plot-pair">
-<figure><img src="../_static/generated/window-off.png" alt="Thue-Morse spectrum without a Hann window"></figure>
-<figure><img src="../_static/generated/window-on.png" alt="Thue-Morse spectrum with a Hann window"></figure>
+<figure><img src="../_static/generated/window-off.png" alt="Thue-Morse spectrum without a Hann window" width="737" height="781"></figure>
+<figure><img src="../_static/generated/window-on.png" alt="Thue-Morse spectrum with a Hann window" width="737" height="781"></figure>
 </div>
 ```
 
@@ -87,9 +87,9 @@ broadens spectral peaks. There is no gain correction. NumPy's length-one window 
 
 ```{raw} html
 <div class="plot-three">
-<figure><img src="../_static/generated/spectrum-0.png" alt="Thue-Morse spectrum mapped with curve 0"></figure>
-<figure><img src="../_static/generated/spectrum-12.png" alt="Thue-Morse spectrum mapped with curve 12"></figure>
-<figure><img src="../_static/generated/spectrum-24.png" alt="Thue-Morse spectrum mapped with curve 24"></figure>
+<figure><img src="../_static/generated/spectrum-0.png" alt="Thue-Morse spectrum mapped with curve 0" width="748" height="792"></figure>
+<figure><img src="../_static/generated/spectrum-12.png" alt="Thue-Morse spectrum mapped with curve 12" width="748" height="792"></figure>
+<figure><img src="../_static/generated/spectrum-24.png" alt="Thue-Morse spectrum mapped with curve 24" width="748" height="792"></figure>
 </div>
 ```
 
