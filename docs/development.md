@@ -12,6 +12,7 @@ uv run ruff format --check .
 
 ```bash
 uv run sphinx-build -W --keep-going -b html docs docs/_build/html
+uv run python scripts/check_docs.py --html
 python -m http.server 8000 --directory docs/_build/html
 ```
 
@@ -45,7 +46,21 @@ in tests. Research manuscripts and intermediate artifacts are excluded from pack
 
 ## Citation and archiving
 
-The project is licensed under MIT. No Zenodo DOI is recorded in the repository at the time
-this documentation was prepared. A DOI or citation badge should be added only after the
-corresponding archive record has been verified. GitHub releases and PyPI distributions remain
-the software release sources in the meantime.
+Zenodo automatically archives new GitHub releases. The all-versions DOI is
+[10.5281/zenodo.23858267](https://doi.org/10.5281/zenodo.23858267).
+Version 1.0.1 is archived at
+[10.5281/zenodo.23858268](https://doi.org/10.5281/zenodo.23858268).
+Author, description, license and keywords come from `CITATION.cff`. Keep its
+all-versions DOI stable; release-specific DOIs are assigned by Zenodo.
+
+## Documentation conventions
+
+Public functions use NumPy-style docstrings: a concise summary, typed Parameters,
+named Returns, applicable Raises, and executable Examples. Explain array shapes,
+coordinate conventions, dtype/mask behavior and information loss at the call site.
+Keep implementation classes internal; expose only the function reference to users.
+
+Run `python scripts/check_docs.py` to execute the narrative examples, verify every
+public function has a reference entry, and audit public docstring sections and parameters.
+CI also runs the source docstring examples. The strict Sphinx build generates the gallery
+from the public API. The favicon is generated from curve 0 at order 3.

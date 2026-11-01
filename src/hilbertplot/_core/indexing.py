@@ -52,6 +52,18 @@ def _origin_shift(matrix: Matrix, side: int) -> tuple[int, int]:
     A rotation or reflection moves the box's minimum corner off the origin; since
     ``matrix`` is a signed permutation the minimum of each row is reached at the extreme
     of whichever coordinate has a negative coefficient.
+
+    Parameters
+    ----------
+    matrix : tuple of tuple of int
+        Two-by-two integer orientation matrix.
+    side : int or None
+        Square side in cells, or None when an order determines it.
+
+    Returns
+    -------
+    tuple of int
+        Translation keeping transformed coordinates inside the same square.
     """
     (a, b), (c, d) = matrix
     dx = (a * (side - 1) if a < 0 else 0) + (b * (side - 1) if b < 0 else 0)

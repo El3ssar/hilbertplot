@@ -44,6 +44,7 @@ docs = [
     "furo>=2024.8.6",
     "myst-parser>=3,<5",
     "sphinx-copybutton>=0.5,<1",
+    "beautifulsoup4>=4.12,<5",
 ]
 # dev composes [plot] rather than restating matplotlib, so the two cannot drift.
 dev = ["hilbertplot[plot]", "pytest>=7.0", "ruff==0.15.13"]

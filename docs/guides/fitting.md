@@ -19,6 +19,11 @@ to build and whether values may be discarded.
 `truncate` chooses among power-of-two side lengths, not all possible square sizes.
 
 ```python
+import numpy as np
+import hilbertplot as hp
+
+values = np.sin(np.arange(900) / 15)
+
 hp.plot(values, fit="pad")
 hp.plot(values, curve=0, fit="square")
 hp.plot(values, fit="truncate")

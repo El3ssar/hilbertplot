@@ -13,7 +13,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
     "sphinx_copybutton",
 ]
 source_suffix = {".md": "markdown", ".rst": "restructuredtext"}
@@ -21,6 +20,8 @@ root_doc = "index"
 exclude_patterns = ["_build", ".DS_Store"]
 html_theme = "furo"
 html_title = "hilbertplot"
+html_favicon = "_static/favicon.svg"
+html_last_updated_fmt = "%b %d, %Y"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_theme_options = {
@@ -30,6 +31,7 @@ html_theme_options = {
     "light_css_variables": {"color-brand-primary": "#146d78", "color-brand-content": "#126571"},
     "dark_css_variables": {"color-brand-primary": "#67ced4", "color-brand-content": "#83dce0"},
 }
+myst_heading_anchors = 4
 myst_enable_extensions = ["colon_fence", "dollarmath"]
 autodoc_typehints = "description"
 autodoc_member_order = "bysource"

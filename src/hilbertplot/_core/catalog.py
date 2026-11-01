@@ -64,6 +64,7 @@ class Family(enum.Enum):
 
     @property
     def is_homogeneous(self) -> bool:
+        """Return whether the construction uses a single quadrant kernel type."""
         return self is not Family.INHOMOGENEOUS
 
 
@@ -73,13 +74,13 @@ class QuadrantRule:
 
     Parameters
     ----------
-    base:
+    base : int
         Index of the *kernel* curve supplying this quadrant's sub-curve.  Only the
         homogeneous building blocks ``{0, 1, 3, 4, 5}`` (and never ``2``) ever
         appear here, exactly as proved in the paper.
-    morphism:
+    morphism : str
         Single-letter morphism code (see :data:`hilbertplot._core.symmetry.MORPHISMS`).
-    reverse:
+    reverse : bool
         Whether the reversion :math:`\\bar p` is applied after the morphism.
     """
 
@@ -88,6 +89,7 @@ class QuadrantRule:
     reverse: bool = False
 
     def __str__(self) -> str:
+        """Return the human-readable construction label."""
         inner = f"{self.base}H"
         if self.morphism != "e":
             inner = f"d_{self.morphism}({inner})"
@@ -100,19 +102,19 @@ class CurveSpec:
 
     Attributes
     ----------
-    index:
+    index : int
         The curve number ``nu`` in ``0..39`` (the paper's :math:`{}_\\nu H`).
-    name:
+    name : str
         Human-readable name (``"Hilbert"``, ``"Moore"``, ``"Liu1"``, ..., ``"I1"``,
         ``"IH12"`` ...).
-    family:
+    family : Family
         Which :class:`Family` the curve belongs to.
-    quadrants:
+    quadrants : tuple of QuadrantRule
         The four :class:`QuadrantRule` s, in quadrant order ``0, 1, 2, 3``.
-    combination:
+    combination : str
         Short label of the kernel mix (e.g. ``"0H"``, ``"5H"``, ``"3H+5H"``), matching
         the paper's grouping of the inhomogeneous curves.
-    closed:
+    closed : bool
         ``True`` if the curve's entry and exit lie in adjacent sub-squares so that the
         infinite curve closes into a loop (Moore, Liu1, I1, I4; Table 3 of the paper).
     """
@@ -133,15 +135,38 @@ class CurveSpec:
 
     @property
     def is_homogeneous(self) -> bool:
+        """Return whether the construction uses a single quadrant kernel type."""
         return self.family.is_homogeneous
 
     def rule_str(self) -> str:
-        """Reconstruct the paper's tag-system line for this curve."""
+        """Reconstruct the paper's tag-system line for this curve.
+
+        Returns
+        -------
+        str
+            Tag-system line using this curve's catalog index and quadrant rules.
+        """
         q0, q1, q2, q3 = self.quadrants
         return f"{self.index}h(k) = {q0} u {q1} r {q2} d {q3}"
 
 
 def _q(base: int, morphism: str = "e", reverse: bool = False) -> QuadrantRule:
+    """Construct one immutable quadrant rule from a kernel, morphism and reversal flag.
+
+    Parameters
+    ----------
+    base : int
+        Kernel curve index supplying this quadrant.
+    morphism : str
+        Direction morphism code; e is the identity.
+    reverse : bool
+        Whether to traverse the construction in the opposite order.
+
+    Returns
+    -------
+    QuadrantRule
+        Immutable quadrant construction rule.
+    """
     return QuadrantRule(base, morphism, reverse)
 
 
@@ -404,6 +429,18 @@ _PROPER_NAME = {0: "Hilbert", 1: "Moore", 2: "Liu1", 3: "Liu2", 4: "Liu3", 5: "L
 
 
 def _with_friendly_names(specs: tuple[CurveSpec, ...]) -> tuple[CurveSpec, ...]:
+    """Replace placeholder catalog names with labels describing their kernel mixes.
+
+    Parameters
+    ----------
+    specs : tuple of CurveSpec
+        Immutable catalog specifications to label.
+
+    Returns
+    -------
+    tuple of CurveSpec
+        Catalog specifications with descriptive names.
+    """
     counters: dict[str, int] = {}
     out = []
     for s in specs:
@@ -444,7 +481,18 @@ _BY_INDEX: Mapping[int, CurveSpec] = {s.index: s for s in SPECS}
 
 
 def spec_by_index(index: int) -> CurveSpec:
-    """Return the :class:`CurveSpec` for curve number ``index`` (0..39)."""
+    """Return the :class:`CurveSpec` for curve number ``index`` (0..39).
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+
+    Returns
+    -------
+    CurveSpec
+        Immutable specification of the requested catalog entry.
+    """
     try:
         return _BY_INDEX[index]
     except KeyError:
@@ -460,7 +508,29 @@ def spec_by_index(index: int) -> CurveSpec:
 # Deliberately `raise` rather than `assert`: these validate the shipped table, so they
 # must still run under `python -O`, where assertions are stripped out entirely.
 def _self_check() -> None:
+    """Validate catalog invariants at import time, raising on inconsistent specifications.
+
+    Returns
+    -------
+    None
+        Raise RuntimeError if a catalog invariant fails.
+    """
+
     def require(condition: bool, message: str) -> None:
+        """Raise RuntimeError when a declarative catalog invariant is false.
+
+        Parameters
+        ----------
+        condition : bool
+            Catalog invariant that must hold.
+        message : str
+            Error message identifying a failed catalog invariant.
+
+        Returns
+        -------
+        None
+            Raises RuntimeError if the invariant does not hold.
+        """
         if not condition:
             raise RuntimeError(f"hilbertplot catalog is inconsistent: {message}")
 

@@ -8,6 +8,8 @@ images, masks, FFTs and intermediate arrays add to peak memory. The default cell
 limit is a guard against accidental huge allocations, not a reserved memory budget.
 
 ```python
+import hilbertplot as hp
+
 previous = hp.config.set_cell_limit(4**10)
 try:
     # work within the temporary limit

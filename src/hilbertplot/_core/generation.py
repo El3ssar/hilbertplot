@@ -37,7 +37,18 @@ _CODE_TO_LETTER = bytes.maketrans(bytes(range(len(DIRECTIONS))), "".join(DIRECTI
 
 
 def _code_table(sym) -> np.ndarray:
-    """A 4-entry lookup ``new_code = table[old_code]`` for a symmetry/morphism."""
+    """A 4-entry lookup ``new_code = table[old_code]`` for a symmetry/morphism.
+
+    Parameters
+    ----------
+    sym : Symmetry
+        Square symmetry applied to coordinates or stroke directions.
+
+    Returns
+    -------
+    numpy.ndarray of uint8
+        Four-entry lookup from original to transformed stroke codes.
+    """
     return np.array([_CODE[sym.apply_letter(letter)] for letter in DIRECTIONS], dtype=np.uint8)
 
 
@@ -54,19 +65,67 @@ _EMPTY = np.empty(0, dtype=np.uint8)
 
 
 def word_length(order: int) -> int:
-    """Number of strokes in an order ``order`` curve: ``4**order - 1``."""
+    """Number of strokes in an order ``order`` curve: ``4**order - 1``.
+
+    Parameters
+    ----------
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+
+    Returns
+    -------
+    int
+        Number of unit strokes, equal to 4**order - 1.
+    """
     if order < 0:
         raise ValueError(f"order must be non-negative, got {order}")
     return 4**order - 1
 
 
 def cache_info():
-    """Return the memo statistics for generated curves (a ``functools`` ``CacheInfo``)."""
+    """Return statistics for cached recursive curve construction.
+
+    Returns
+    -------
+    info : namedtuple
+        Standard functools cache statistics: hits, misses, maxsize, currsize.
+        maxsize is None for this unbounded memo cache. currsize counts
+        recursive construction entries, not cells or bytes.
+
+    See Also
+    --------
+    hilbertplot.config.clear_cache : Release cached construction entries.
+
+    Notes
+    -----
+    The cache stores recursive stroke arrays shared between curves. It does
+    not report arrays owned by callers or open Matplotlib figures.
+
+    Examples
+    --------
+    >>> import hilbertplot as hp
+    >>> hp.config.cache_info().maxsize is None
+    True
+    """
     return _codes.cache_info()
 
 
 @cache
 def _codes(index: int, order: int) -> np.ndarray:
+    """Recursively assemble and cache read-only stroke codes for one curve and order.
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+
+    Returns
+    -------
+    numpy.ndarray of uint8
+        Read-only recursively assembled stroke codes.
+    """
     if order == 0:
         return _EMPTY
     spec = spec_by_index(index)
@@ -88,6 +147,18 @@ def check_order(order: int, *, bytes_per_cell: int = 16) -> int:
 
     Rejects non-integers (including ``bool``), negatives, and depths whose curve could not
     be held in memory -- see :mod:`hilbertplot._core.limits`.
+
+    Parameters
+    ----------
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+    bytes_per_cell : int
+        Bytes per output element used for the allocation estimate.
+
+    Returns
+    -------
+    int
+        Validated nonnegative recursion depth.
     """
     if isinstance(order, bool) or not isinstance(order, (int, np.integer)):
         raise TypeError(f"order must be an int, got {type(order).__name__}")
@@ -103,6 +174,18 @@ def curve_codes(index: int, order: int) -> np.ndarray:
 
     The array is read-only (it is shared from the memo cache); copy it if you need to
     mutate it.
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+
+    Returns
+    -------
+    numpy.ndarray of uint8
+        Read-only cached stroke array; copy before mutation.
     """
     return _codes(index, check_order(order))
 
@@ -112,6 +195,18 @@ def curve_word(index: int, order: int) -> str:
 
     >>> curve_word(0, 2)          # the classic Hilbert curve
     'ruluurdrurddldr'
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+
+    Returns
+    -------
+    str
+        Direction word of length 4**order - 1.
     """
     # A word is one ASCII byte per stroke, not a 16-byte coordinate pair.
     check_order(order, bytes_per_cell=1)
@@ -119,5 +214,28 @@ def curve_word(index: int, order: int) -> str:
 
 
 def clear_cache() -> None:
-    """Drop all memoised curves (frees memory after generating high-order curves)."""
+    """Clear memoized recursive stroke arrays and reset cache statistics.
+
+    Returns
+    -------
+    None
+        The generation cache is cleared in place.
+
+    See Also
+    --------
+    hilbertplot.config.cache_info : Inspect cache entries and hit/miss counts.
+
+    Notes
+    -----
+    Does not close figures or release arrays referenced elsewhere. A process's
+    resident memory need not decrease immediately, because Python and NumPy
+    allocators may retain freed memory for reuse.
+
+    Examples
+    --------
+    >>> import hilbertplot as hp
+    >>> hp.config.clear_cache()
+    >>> hp.config.cache_info().currsize
+    0
+    """
     _codes.cache_clear()

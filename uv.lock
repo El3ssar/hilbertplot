@@ -513,6 +513,7 @@ dev = [
     { name = "ruff" },
 ]
 docs = [
+    { name = "beautifulsoup4" },
     { name = "furo" },
     { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "matplotlib", version = "3.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -528,6 +529,7 @@ plot = [
 
 [package.metadata]
 requires-dist = [
+    { name = "beautifulsoup4", marker = "extra == 'docs'", specifier = ">=4.12,<5" },
     { name = "furo", marker = "extra == 'docs'", specifier = ">=2024.8.6" },
     { name = "hilbertplot", extras = ["plot"], marker = "extra == 'dev'" },
     { name = "hilbertplot", extras = ["plot"], marker = "extra == 'docs'" },

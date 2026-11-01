@@ -44,6 +44,16 @@ def _resolve_cmap(cmap):
     """Turn ``cmap`` (a name or a list of colours) into a matplotlib Colormap.
 
     NaN-filled (unmapped) cells are made transparent so padding never shows.
+
+    Parameters
+    ----------
+    cmap : str or matplotlib.colors.Colormap or sequence of colors
+        Colormap or gradient stops, as accepted by the relevant renderer.
+
+    Returns
+    -------
+    matplotlib.colors.Colormap
+        Independent colormap with transparent bad/missing values.
     """
     from matplotlib import colormaps
     from matplotlib.colors import Colormap, LinearSegmentedColormap
@@ -80,6 +90,11 @@ def _imshow_properties() -> frozenset[str]:
 
     Hard-coding a list would go stale and would misjudge real arguments -- ``zorder``, for
     instance, is a perfectly good imshow keyword that happens to look like ``order``.
+
+    Returns
+    -------
+    frozenset of str
+        Supported image keyword names introspected from Matplotlib.
     """
     from matplotlib.artist import ArtistInspector
     from matplotlib.image import AxesImage
@@ -97,6 +112,16 @@ def _reject_unknown_kwargs(imshow_kw: dict) -> None:
     matplotlib does *not* accept and that closely resembles a ``draw`` parameter is treated
     as a typo, so the user gets ``did you mean 'granularity'?`` instead of an opaque
     ``AxesImage.set() got an unexpected keyword argument`` from inside matplotlib.
+
+    Parameters
+    ----------
+    imshow_kw : dict
+        Extra image-rendering keywords to inspect or forward to Matplotlib.
+
+    Returns
+    -------
+    None
+        Raises TypeError for a close misspelling of an internal drawing keyword.
     """
     from difflib import get_close_matches
 
@@ -116,7 +141,20 @@ def _reject_unknown_kwargs(imshow_kw: dict) -> None:
 
 
 def _check_transforms(fourier, difference):
-    """Select at most one transformation; boolean flags also accept integer 0/1."""
+    """Select at most one transformation; boolean flags also accept integer 0/1.
+
+    Parameters
+    ----------
+    fourier : bool
+        Whether to select the Fourier transform.
+    difference : bool
+        Whether to select the geometric difference field.
+
+    Returns
+    -------
+    None
+        Raises for non-boolean flags or incompatible simultaneous transforms.
+    """
     for name, value in (("fourier", fourier), ("difference", difference)):
         if not isinstance(value, (bool, np.bool_, int, np.integer)) or value not in (0, 1):
             raise TypeError(f"{name} must be a boolean (False/True or 0/1)")
@@ -151,6 +189,23 @@ class HilbertPlot:
     __slots__ = ("_curve", "_data")
 
     def __init__(self, curve: Curve, data) -> None:
+        """Store a private, contiguous, immutable floating-point copy of a sequence.
+
+        Parameters
+        ----------
+        curve : Curve
+            Resolved internal curve construction.
+        data : array_like
+            Nonempty numeric sequence, converted to a flat floating-point buffer.
+            Masked values are filled with NaN.
+
+        Raises
+        ------
+        TypeError
+            The curve is not an internal Curve or samples cannot convert to float.
+        ValueError
+            The sequence is empty.
+        """
         if not isinstance(curve, Curve):
             raise TypeError(f"curve must be a Curve, got {type(curve).__name__}")
         self._curve = curve
@@ -183,7 +238,16 @@ class HilbertPlot:
 
     @property
     def data(self) -> np.ndarray:
-        """numpy.ndarray: The 1-D data, as a read-only view of a private copy.
+        """The 1-D data, as a read-only view of a private copy.
+
+        A fresh view is handed out each time, over a read-only buffer, so neither the array
+        you get back nor its ``.base`` can be written to or made writable again -- a plot
+        cannot be corrupted by accident.  A masked array's masked entries arrive as ``NaN``.
+
+        Returns
+        -------
+        numpy.ndarray
+            The 1-D data, as a read-only view of a private copy.
 
         A fresh view is handed out each time, over a read-only buffer, so neither the array
         you get back nor its ``.base`` can be written to or made writable again -- a plot
@@ -192,6 +256,7 @@ class HilbertPlot:
         return self._data.view()
 
     def __len__(self) -> int:
+        """Return the number of scalar measurements in this internal plot."""
         return self._data.size
 
     # -- the mapping ---------------------------------------------------------
@@ -254,8 +319,12 @@ class HilbertPlot:
 
         Parameters
         ----------
-        granularity, order, fit
-            Passed to :meth:`image` to build the data image that is transformed.
+        granularity : int, default 1
+            Positive consecutive block length, forwarded to :meth:`image`.
+        order : int or None, optional
+            Fix a power-of-two side, or let fit select the size.
+        fit : str, default 'auto'
+            Grid sizing policy used by :meth:`image`.
         log : bool, default True
             Return ``log(1 + |F|)`` so faint structure is visible.
         window : bool, default False
@@ -293,8 +362,12 @@ class HilbertPlot:
 
         Parameters
         ----------
-        granularity, order, fit
-            Resolved exactly as in :meth:`image`, so the grid matches cell for cell.
+        granularity : int, default 1
+            Positive block length; affects values but not the geometric field.
+        order : int or None, optional
+            Fix a power-of-two side, or use fit for automatic sizing.
+        fit : str, default 'auto'
+            Grid sizing policy resolved exactly as in :meth:`image`.
 
         Returns
         -------
@@ -320,6 +393,15 @@ class HilbertPlot:
         ``label_map()[y, x]`` is the step at which the curve reaches cell ``(x, y)``.  Like
         :meth:`difference_map`, it follows the plot's actual grid rather than a power of two.
 
+        Parameters
+        ----------
+        granularity : int
+            Positive number of consecutive samples per averaging block.
+        order : int or None
+            Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+        fit : str
+            Sizing policy already selected by the caller: pad, truncate, square or auto.
+
         Returns
         -------
         numpy.ndarray
@@ -341,6 +423,20 @@ class HilbertPlot:
 
         ``fit`` is validated up front, even when an explicit ``order`` makes it moot --
         otherwise a typo like ``fit="squre"`` would pass silently.
+
+        Parameters
+        ----------
+        granularity : int
+            Positive number of consecutive samples per averaging block.
+        order : int or None
+            Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+        fit : str
+            Sizing policy already selected by the caller: pad, truncate, square or auto.
+
+        Returns
+        -------
+        tuple
+            Values, ordered (x, y) points and square side for this render request.
         """
         check_fit(fit)
         # Validate unconditionally -- `granularity=True` must not slip past as "no
@@ -393,8 +489,14 @@ class HilbertPlot:
         cmap : str or list of color, default "viridis"
             A matplotlib colormap **name**, or a **list of colours** to interpolate
             smoothly between (e.g. ``["red", "green", "tab:blue"]`` sweeps red to blue).
-        granularity, order, fit, fill
-            Passed to :meth:`image`.
+        granularity : int, default 1
+            Positive sequence block length forwarded to :meth:`image`.
+        order : int or None, optional
+            Explicit power-of-two recursion depth.
+        fit : str, default 'auto'
+            Grid sizing policy forwarded to :meth:`image`.
+        fill : float, default numpy.nan
+            Padding value for cells without samples.
         ax : matplotlib.axes.Axes, optional
             Axes to draw on; a new figure is created when ``None``.
         vmin, vmax : float, optional
@@ -537,6 +639,7 @@ class HilbertPlot:
         return save_figure(self.draw(cmap, **kwargs), path, dpi=dpi)
 
     def __repr__(self) -> str:
+        """Return a concise representation for debugging internal objects."""
         return f"<HilbertPlot: {len(self)} values on {self._curve.name}>"
 
     def _repr_png_(self) -> bytes | None:
@@ -544,6 +647,11 @@ class HilbertPlot:
 
         Returns ``None`` when matplotlib is not installed, so the notebook falls back to
         :meth:`__repr__` rather than raising -- matplotlib is an optional extra.
+
+        Returns
+        -------
+        bytes
+            PNG rendering used by rich notebook display of internal objects.
         """
         try:
             from .render import figure_png

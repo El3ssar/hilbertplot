@@ -4,6 +4,11 @@ All three are selected through `hp.plot()`. Each call produces one image.
 `fourier` and `difference` default to `False` and are mutually exclusive.
 
 ```python
+import numpy as np
+import hilbertplot as hp
+
+values = np.sin(np.arange(900) / 15)
+
 hp.plot(values, granularity=16)
 hp.plot(values, fourier=True)
 hp.plot(values, difference=True)
@@ -20,8 +25,10 @@ hp.data.granulate([0, 2, 10, 14], 2)
 ```
 
 This acts on the 1-D sequence before mapping, not on square blocks of image pixels.
-It is an explicit information-losing transform. NaNs or masked values propagate through
-block means rather than being silently omitted.
+It is an explicit information-losing transform. NaNs propagate through block means. In plotting and `to_grid()`, masked values
+also propagate as missing through their blocks. The standalone `granulate()` helper
+converts to an ordinary float array and does not preserve masks; make your missing-value
+policy explicit before using it.
 
 ![The mapped signal after averaging consecutive blocks of 16](../_static/generated/granularity.png)
 
@@ -44,7 +51,7 @@ The steps are:
 
 The result is **magnitude**, not squared power or the original signal's 1-D spectrum.
 The visual pattern depends on the chosen curve, grid, padding, and preprocessing.
-Rendered Fourier maps use percentile-based colour limits by default; the numerical array
+Rendered Fourier maps use the 50th and 99.8th percentiles as default colour limits; the numerical array
 is not clipped to those display limits.
 
 ### What the window does

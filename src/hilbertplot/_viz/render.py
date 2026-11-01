@@ -48,7 +48,13 @@ _MODES = ("auto", "line", "fill")
 
 
 def pyplot():
-    """Return ``matplotlib.pyplot`` with a friendly error if matplotlib is missing."""
+    """Return ``matplotlib.pyplot`` with a friendly error if matplotlib is missing.
+
+    Returns
+    -------
+    module
+        Lazily imported matplotlib.pyplot.
+    """
     try:
         import matplotlib.pyplot as plt
     except ModuleNotFoundError as exc:
@@ -64,6 +70,18 @@ def bare_axes(ax: Axes, side: int | None = None) -> Axes:
 
     Shared by the curve renderer and :meth:`hilbertplot.HilbertPlot.draw` so both look
     the same.  When ``side`` is given the limits are set to frame a ``side x side`` grid.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes receiving this drawing.
+    side : int or None
+        Square side in cells, or None when an order determines it.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The supplied axes after removing ticks/spines and setting equal aspect.
     """
     if side is not None:
         ax.set_xlim(-0.75, side - 0.25)
@@ -82,6 +100,20 @@ def save_figure(ax: Axes, path: str, *, dpi: int = 140) -> str:
     The close is in a ``finally`` so a failed write (bad extension, unwritable directory)
     cannot leak the figure -- matplotlib keeps every open figure alive globally, so a loop
     of failing saves would otherwise grow without bound.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes receiving this drawing.
+    path : str
+        Output file path; the extension selects the Matplotlib export format.
+    dpi : int
+        Raster export resolution in dots per inch.
+
+    Returns
+    -------
+    str
+        Original output path; the figure is closed even if writing fails.
     """
     plt = pyplot()
     figure = ax.get_figure()
@@ -93,7 +125,18 @@ def save_figure(ax: Axes, path: str, *, dpi: int = 140) -> str:
 
 
 def figure_png(ax: Axes) -> bytes:
-    """Render ``ax``'s figure to PNG bytes and close it -- for notebook ``_repr_png_``."""
+    """Render ``ax``'s figure to PNG bytes and close it -- for notebook ``_repr_png_``.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes receiving this drawing.
+
+    Returns
+    -------
+    bytes
+        PNG-encoded figure; the figure is closed afterwards.
+    """
     import io
 
     plt = pyplot()
@@ -107,6 +150,26 @@ def figure_png(ax: Axes) -> bytes:
 
 
 def _draw_fill(ax, pts, rows, columns, cmap):
+    """Draw cells colored by visit order using rows and columns as image dimensions.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes receiving this drawing.
+    pts : numpy.ndarray
+        Ordered integer (x, y) cells with shape (N, 2).
+    rows : int
+        Number of spatial image rows.
+    columns : int
+        Number of spatial image columns.
+    cmap : str or matplotlib.colors.Colormap or sequence of colors
+        Colormap or gradient stops, as accepted by the relevant renderer.
+
+    Returns
+    -------
+    None
+        The colored image is added to ax in place.
+    """
     img = np.empty((rows, columns), dtype=np.float32)
     img[pts[:, 1], pts[:, 0]] = np.linspace(0.0, 1.0, len(pts), dtype=np.float32)
     ax.imshow(
@@ -119,6 +182,28 @@ def _draw_fill(ax, pts, rows, columns, cmap):
 
 
 def _draw_line(ax, pts, order, color, cmap, linewidth):
+    """Draw an ordered path as solid or gradient-colored connected segments.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes receiving this drawing.
+    pts : numpy.ndarray
+        Ordered integer (x, y) cells with shape (N, 2).
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+    color : color-like or None
+        Solid path color, or None for visit-order coloring.
+    cmap : str or matplotlib.colors.Colormap or sequence of colors
+        Colormap or gradient stops, as accepted by the relevant renderer.
+    linewidth : float or None
+        Path width in points, or None for automatic sizing.
+
+    Returns
+    -------
+    None
+        Connected path segments are added to ax in place.
+    """
     if linewidth is None:
         linewidth = max(0.15, 3.0 - 0.35 * order)
     if color is None and order <= _GRADIENT_MAX_ORDER:
@@ -155,7 +240,36 @@ def draw(
     endpoints: bool = True,
     title: str | None = None,
 ) -> Axes:
-    """Draw one curve at ``order`` onto ``ax`` (created if ``None``); return the axes."""
+    """Draw one curve at ``order`` onto ``ax`` (created if ``None``); return the axes.
+
+    Parameters
+    ----------
+    curve : Curve or int or str
+        Internal curve instance, or selector resolved by the caller.
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+    ax : matplotlib.axes.Axes
+        Axes receiving this drawing.
+    shape : tuple of int or None
+        Requested spatial shape; trailing dimensions describe pixel components when supported.
+    mode : str
+        Rendering mode: auto, line, or fill.
+    color : color-like or None
+        Solid path color, or None for visit-order coloring.
+    cmap : str or matplotlib.colors.Colormap or sequence of colors
+        Colormap or gradient stops, as accepted by the relevant renderer.
+    linewidth : float or None
+        Path width in points, or None for automatic sizing.
+    endpoints : bool
+        Mark entry and exit cells in line mode when True.
+    title : str or None
+        Optional drawing title; None allows an automatic title.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        Axes containing the drawing, without opening a window.
+    """
     if mode not in _MODES:
         legal = ", ".join(repr(name) for name in _MODES)
         raise ValueError(f"mode must be one of {legal}, got {mode!r}")

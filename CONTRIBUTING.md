@@ -107,6 +107,7 @@ Build the guides, API reference and generated gallery locally:
 uv sync --inexact --extra dev --extra docs
 uv run --no-sync python scripts/check_docs.py
 uv run --no-sync sphinx-build -W --keep-going -b html docs docs/_build/html
+uv run --no-sync python scripts/check_docs.py --html
 python -m http.server 8000 --directory docs/_build/html
 ```
 

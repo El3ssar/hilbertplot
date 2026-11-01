@@ -12,4 +12,5 @@ __all__ = ["fourier", "from_grid", "granulate", "to_grid"]
 
 
 def __dir__() -> list[str]:
+    """Return only the supported public names for interactive completion."""
     return sorted(__all__)
