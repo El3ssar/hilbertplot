@@ -1,0 +1,64 @@
+name: Documentation
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'src/**'
+      - 'scripts/docs_gallery.py'
+      - 'scripts/check_docs.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/docs.yml'
+  # The release workflow stamps versions with GITHUB_TOKEN, whose push does not
+  # trigger another push workflow. Build after it finishes to document that version.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.12'
+          enable-cache: true
+      - name: Install documentation dependencies
+        run: uv sync --extra docs --frozen
+      - name: Execute examples and check public API coverage
+        run: uv run --no-sync python scripts/check_docs.py
+      - name: Build documentation with warnings treated as errors
+        run: uv run --no-sync sphinx-build -W --keep-going -b html docs docs/_build/html
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs/_build/html
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

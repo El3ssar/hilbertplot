@@ -39,3 +39,7 @@ examples/output/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# Generated documentation
+docs/_build/
+docs/_static/generated/

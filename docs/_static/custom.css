@@ -1,0 +1,7 @@
+.home-lead { font-size: 1.3rem; line-height: 1.55; max-width: 44rem; }
+.figure-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+.figure-grid figure { margin: 0; }
+.figure-grid img { width: 100%; height: auto; border-radius: .5rem; }
+.figure-grid figcaption { font-size: .9rem; line-height: 1.5; margin-top: .5rem; }
+.api-summary td:first-child { white-space: nowrap; }
+@media (max-width: 640px) { .figure-grid { grid-template-columns: 1fr; } }

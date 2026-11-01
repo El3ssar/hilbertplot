@@ -1,0 +1,37 @@
+# Installation
+
+Python 3.10 or newer is required.
+
+```bash
+pip install "hilbertplot[plot]"
+```
+
+For coordinate calculations and array conversion without rendering:
+
+```bash
+pip install hilbertplot
+```
+
+## Verify the installation
+
+```python
+import hilbertplot as hp
+
+print(hp.__version__)
+print(hp.curves.info("Moore")["index"])  # 1
+```
+
+These guides describe the function-based API introduced in version 1.0. If your examples
+use `Curve`, `HilbertPlot`, or `hilbert_plot(...).draw()`, see [migration](migration.md).
+
+## Work from source
+
+```bash
+git clone https://github.com/El3ssar/hilbertplot.git
+cd hilbertplot
+uv sync --extra dev
+uv run python examples/try_api.py
+```
+
+`examples/try_api.py` makes separate figures and exercises the numerical operations.
+Add `--save-only` with `MPLBACKEND=Agg` to run without opening windows.

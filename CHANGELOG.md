@@ -7,7 +7,7 @@ All notable changes to **hilbertplot** are documented here. The format follows
 Released versions below are generated automatically by python-semantic-release;
 new entries are inserted at the marker.
 
-## Local API redesign (unreleased)
+## API redesign overview (1.0)
 
 - Make array conversion lossless for dtypes, large integers, complex values and
   masks; keep padding masked where NaN would require lossy integer conversion.
@@ -41,7 +41,7 @@ new entries are inserted at the marker.
   handle masked integer data, and report invalid Fourier inputs without warnings.
 - Normalize the memory regression test's RSS units on macOS as well as Linux.
 
-These changes are under local review and have not been released.
+These interface changes were introduced in version 1.0.0.
 
 ## Migrating from 0.1.0
 

@@ -199,9 +199,16 @@ MPLBACKEND=Agg python examples/try_api.py --save-only
 
 Figures are saved in `examples/output/try_api/`.
 
-## Local API migration
+## Documentation
 
-This working-tree redesign replaces the object-based 0.2.0 interface:
+The documentation source is in [docs/](docs/), with guides, a generated gallery,
+and a complete function reference. See [CONTRIBUTING.md](CONTRIBUTING.md#documentation)
+to preview it locally. The GitHub Pages site is prepared for publication at
+`https://el3ssar.github.io/hilbertplot/` once Pages is enabled.
+
+## Migrating from 0.2
+
+Version 1.0 replaces the object-based 0.2.0 interface:
 
 | Previous | New |
 | --- | --- |
@@ -215,7 +222,7 @@ This working-tree redesign replaces the object-based 0.2.0 interface:
 
 The old `Curve`, `CurveList`, `HilbertPlot`, and `hilbert_plot` exports are removed.
 `difference=True` now renders the complete difference map. Rendering defaults to
-power-of-two padding. These are intentional interface changes under local review.
+power-of-two padding. See the documentation migration guide for these intentional interface changes.
 
 ## License
 
