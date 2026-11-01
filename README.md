@@ -204,10 +204,9 @@ Figures are saved in `examples/output/try_api/`.
 
 ## Documentation
 
-The documentation source is in [docs/](docs/), with guides, a generated gallery,
-and a complete function reference. See [CONTRIBUTING.md](CONTRIBUTING.md#documentation)
-to preview it locally. The GitHub Pages site is prepared for publication at
-`https://el3ssar.github.io/hilbertplot/` once Pages is enabled.
+Read the [documentation](https://el3ssar.github.io/hilbertplot/) for guides,
+the plot gallery, and the complete function reference. The source is in
+[docs/](docs/); see [CONTRIBUTING.md](CONTRIBUTING.md#documentation) to preview it locally.
 
 ## Migrating from 0.2
 
