@@ -15,7 +15,14 @@ A single-cell grid returns zero.
 
 ## Comparing curves
 
-![Difference maps of four curves with a common logarithmic color scale](../_static/generated/locality.png)
+```{raw} html
+<div class="plot-pair">
+<figure><img src="../_static/generated/locality-0.png" alt="Hilbert difference field and its color scale"></figure>
+<figure><img src="../_static/generated/locality-1.png" alt="Moore difference field on the same scale"></figure>
+<figure><img src="../_static/generated/locality-12.png" alt="Curve twelve difference field on the same scale"></figure>
+<figure><img src="../_static/generated/locality-24.png" alt="Curve twenty-four difference field on the same scale"></figure>
+</div>
+```
 
 These maps use the same 32-square resolution, `inferno` colormap and logarithmic
 normalization. Low distances remain visible while large jumps at region boundaries
@@ -49,4 +56,4 @@ assert field.shape == grid.shape == labels.shape
 `hp.plot(values, difference=True)` uses its fitted grid size; numerical
 `difference_map()` takes a power-of-two `order` or an explicit square `side`.
 Granularity changes values, not this geometric field. Fourier and difference flags
-cannot be enabled together. The difference map is the full image, not a threshold overlay.
+cannot be enabled together. The difference map fills the complete image.

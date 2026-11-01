@@ -46,12 +46,17 @@ chooses a new grid based on sequence length.
 ## Colour images
 
 ```python
-rgb = np.arange(16 * 16 * 3, dtype=np.uint16).reshape(16, 16, 3)
-sequence = hp.data.from_grid(rgb, curve=12)
+y, x = np.mgrid[0:32, 0:32]
+rgb = np.full((32, 32, 3), 242, dtype=np.uint8)
+rgb[3:14, 3:14] = [49, 104, 173]                         # blue square
+rgb[(x - 22)**2 + (y - 10)**2 <= 36] = [218, 128, 56]  # orange disk
+rgb[(y > 18) & (np.abs(x - y + 6) < 3)] = [67, 143, 117] # green stripe
+sequence = hp.data.from_grid(rgb, curve=0)
 assert sequence.ndim == 1
 assert sequence.size == rgb.size
-restored = hp.data.to_grid(sequence, curve=12, shape=rgb.shape)
+restored = hp.data.to_grid(sequence, curve=0, shape=rgb.shape)
 np.testing.assert_array_equal(restored, rgb)
+assert restored.dtype == np.uint8
 ```
 
 Each pixel's channels stay consecutive and in their original order. The spatial path selects
@@ -61,13 +66,23 @@ component axes follow the same convention.
 
 `length=` counts flattened values, including channels. Omit it when reading a complete image.
 
+The figure below uses this exact uint8 image. The first reconstruction uses the
+same curve; the final image writes the sequence with curve 12 instead. That changes
+pixel placement, as described under [reordering](#reorder-with-a-different-curve).
+
 ## Supported image shapes
 
 Power-of-two squares work with all forty curves. Arbitrary squares and quasisquares work
 with curves **0, 3, 4, 5, 24, 29, 30, 31**. General rectangles are unsupported and raise an error.
 No pixels are silently cropped, skipped, or assigned a different curve.
 
-![RGB input, exact reconstruction, and rearrangement using a different curve](../_static/generated/rgb_roundtrip.png)
+```{raw} html
+<div class="plot-three">
+<figure><img src="../_static/generated/rgb-input.png" alt="Original RGB test pattern"></figure>
+<figure><img src="../_static/generated/rgb-restored.png" alt="Identical pattern reconstructed with the same curve"></figure>
+<figure><img src="../_static/generated/rgb-permuted.png" alt="Pixels rearranged by writing with curve twelve"></figure>
+</div>
+```
 
 ## Reorder with a different curve
 

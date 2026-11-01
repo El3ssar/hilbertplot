@@ -27,7 +27,6 @@ def build(output: Path):
     import matplotlib.pyplot as plt
     import numpy as np
     from matplotlib.colors import LogNorm
-    from matplotlib.patches import Patch, Rectangle
 
     import hilbertplot as hp
 
@@ -44,6 +43,9 @@ def build(output: Path):
         previous.unlink()
     (output / "hero.svg").unlink(missing_ok=True)
     brand(output.parent)
+    from docs_constructions import catalog_assets
+
+    catalog_assets(output)
 
     def render_theme(dark):
         bg, fg, edge = (
@@ -71,17 +73,30 @@ def build(output: Path):
             }
         ):
 
+            def improve_labels(fig):
+                for ax in fig.axes:
+                    ax.title.set_fontsize(12)
+                    ax.tick_params(labelsize=10)
+
             def save(name, fig, dpi=170):
+                improve_labels(fig)
                 fig.savefig(
                     output / f"{name}{suffix}.png", dpi=dpi, bbox_inches="tight", facecolor=bg
                 )
                 plt.close(fig)
 
             def save_parts(fig, names):
+                improve_labels(fig)
                 fig.canvas.draw()
                 renderer = fig.canvas.get_renderer()
-                for ax, name in zip(fig.axes, names, strict=True):
-                    bounds = ax.get_tightbbox(renderer).transformed(fig.dpi_scale_trans.inverted())
+                from matplotlib.transforms import Bbox
+
+                axes = [ax for ax in fig.axes if ax.images or ax.lines]
+                for ax, name in zip(axes, names, strict=True):
+                    boxes = [ax.get_tightbbox(renderer)]
+                    if ax.images and ax.images[0].colorbar is not None:
+                        boxes.append(ax.images[0].colorbar.ax.get_tightbbox(renderer))
+                    bounds = Bbox.union(boxes).transformed(fig.dpi_scale_trans.inverted())
                     fig.savefig(
                         output / f"{name}{suffix}.png",
                         dpi=200,
@@ -100,40 +115,28 @@ def build(output: Path):
                 for ax in list(axes.flat)[len(items) :]:
                     ax.set_visible(False)
                 fig.tight_layout(pad=1.3)
-                if name == "granularity":
-                    save_parts(fig, ["granularity-input", "granularity-result"])
+                parts = {
+                    "granularity": ["granularity-input", "granularity-result"],
+                    "fitting": ["fit-pad", "fit-square", "fit-truncate"],
+                    "colors": ["color-sequential", "color-diverging", "color-custom"],
+                    "locality": ["locality-0", "locality-1", "locality-12", "locality-24"],
+                    "modes": ["mode-line", "mode-fill"],
+                    "windows": ["window-off", "window-on"],
+                    "spectra": ["spectrum-0", "spectrum-12", "spectrum-24"],
+                    "normalization": ["norm-linear", "norm-log"],
+                    "granularities": ["granularity-1", "granularity-4", "granularity-12"],
+                }
+                if name in parts:
+                    # Colorbar axes have no image; crop only the actual image panels.
+                    image_axes = [ax for ax in fig.axes if ax.images or ax.lines]
+                    if len(image_axes) == len(parts[name]):
+                        save_parts(fig, parts[name])
                 save(name, fig)
 
             save("curve", hp.plot_curve(0, order=3, color=blue, title="Hilbert (0), order 3"))
             save(
                 "quasisquare",
                 hp.plot_curve(3, shape=(15, 16), color=purple, title="Liu2 (3), 15 x 16"),
-            )
-            for name, group in [
-                ("catalog", None),
-                ("proper", hp.curves.proper()),
-                ("improper", hp.curves.improper()),
-                ("generalizing", hp.curves.generalizing()),
-            ]:
-                save(
-                    name,
-                    hp.gallery(
-                        group,
-                        order=3,
-                        ncols=5
-                        if name == "catalog"
-                        else 3
-                        if name in ("proper", "improper")
-                        else 4,
-                        color=blue if name != "improper" else orange,
-                    ),
-                )
-            compare(
-                "orders",
-                [1, 2, 3, 4],
-                lambda ax, k: hp.plot_curve(
-                    0, order=k, color=blue, ax=ax, title=f"Order {k}: {4**k} cells"
-                ),
             )
             compare(
                 "modes",
@@ -155,47 +158,10 @@ def build(output: Path):
                     0, shape=s, color=blue, ax=ax, title=f"{s[0]} x {s[1]}"
                 ),
             )
-            # All child paths use actual coordinates; colors identify the kernel type.
-            fig, axes = plt.subplots(1, 3, figsize=(12.8, 4.7))
-            for ax, c in zip(axes, [1, 6, 12], strict=True):
-                pts = hp.curves.points(c, order=3)
-                info = hp.curves.info(c)
-                hp.plot_curve(
-                    c,
-                    order=3,
-                    color=edge,
-                    linewidth=1,
-                    ax=ax,
-                    endpoints=False,
-                    title=f"{info['name']} ({c})",
-                )
-                # The construction uses quadrants BL, TL, TR, BR.
-                origins = [(0, 0), (0, 4), (4, 4), (4, 0)]
-                for q, ((x, y), part) in enumerate(zip(origins, np.split(pts, 4), strict=True)):
-                    ax.add_patch(
-                        Rectangle(
-                            (x - 0.4, y - 0.4), 3.8, 3.8, facecolor="none", edgecolor=edge, lw=0.6
-                        )
-                    )
-                    # Metadata's rule string identifies each quadrant's source.
-                    import re
+            from docs_constructions import figures
 
-                    kernels = [int(v) for v in re.findall(r"(\d+)H", info["rule"].split("=")[1])]
-                    ax.plot(part[:, 0], part[:, 1], color=kernel_colors[kernels[q]], lw=2.1)
-                handles = [
-                    Patch(color=kernel_colors[k], label=f"Kernel {k}: {hp.curves.info(k)['name']}")
-                    for k in info["kernels"]
-                ]
-                ax.legend(
-                    handles=handles,
-                    loc="upper center",
-                    bbox_to_anchor=(0.5, -0.03),
-                    frameon=False,
-                    fontsize=9,
-                )
-            fig.tight_layout()
-            save_parts(fig, ["classification-1", "classification-6", "classification-12"])
-            save("classification", fig)
+            for name, fig in figures(bg, fg, edge, kernel_colors).items():
+                save(name, fig)
             # Mapping examples use a ramp so visit order is visible without an analysis transform.
             for name, c in [("data", 0), ("moore", 1)]:
                 save(
@@ -204,19 +170,6 @@ def build(output: Path):
                         np.arange(256), curve=c, cmap="cividis", title=f"Visit order, curve {c}"
                     ),
                 )
-            compare(
-                "curves_signal",
-                [0, 1, 12, 24],
-                lambda ax, c: hp.plot(
-                    np.arange(256),
-                    curve=c,
-                    cmap="cividis",
-                    colorbar=False,
-                    ax=ax,
-                    title=f"Curve {c}: values 0-255",
-                ),
-                columns=2,
-            )
             compare(
                 "fitting",
                 ["pad", "square", "truncate"],
@@ -384,15 +337,36 @@ def build(output: Path):
                     title="Mean neighbour visit-index distance",
                 ),
             )
-            compare(
-                "labels",
-                [0, 12],
-                lambda ax, c: hp.plot(
-                    np.arange(64), curve=c, cmap="cividis", ax=ax, title=f"Visit indices, curve {c}"
-                ),
-            )
+            fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.7))
+            for ax, c in zip(axes, [0, 1], strict=True):
+                hp.plot(
+                    np.arange(16),
+                    curve=c,
+                    cmap="cividis",
+                    colorbar=False,
+                    ax=ax,
+                    title=f"{hp.curves.info(c)['name']}: visit indices",
+                )
+                labels = hp.curves.label_map(c, order=2)
+                for y in range(4):
+                    for x in range(4):
+                        ax.text(
+                            x,
+                            y,
+                            str(labels[y, x]),
+                            ha="center",
+                            va="center",
+                            fontsize=13,
+                            color="white" if labels[y, x] < 8 else "#172538",
+                        )
+            fig.tight_layout()
+            save_parts(fig, ["labels-hilbert", "labels-moore"])
+            save("labels", fig)
             y, x = np.mgrid[0:32, 0:32]
-            rgb = np.stack((x / 31, y / 31, 0.5 + 0.5 * np.sin((x + y) / 5)), axis=-1)
+            rgb = np.full((32, 32, 3), 242, dtype=np.uint8)
+            rgb[3:14, 3:14] = [49, 104, 173]
+            rgb[(x - 22) ** 2 + (y - 10) ** 2 <= 36] = [218, 128, 56]
+            rgb[(y > 18) & (np.abs(x - y + 6) < 3)] = [67, 143, 117]
             seq = hp.data.from_grid(rgb, curve=0)
             reconstructed = hp.data.to_grid(seq, curve=0, shape=rgb.shape)
             permuted = hp.data.to_grid(seq, curve=12, shape=rgb.shape)
@@ -408,6 +382,7 @@ def build(output: Path):
                 ax.set_title(title, fontsize=10)
                 ax.set_axis_off()
             fig.tight_layout()
+            save_parts(fig, ["rgb-input", "rgb-restored", "rgb-permuted"])
             save("rgb_roundtrip", fig)
             fig, ax = plt.subplots(figsize=(8, 2.4))
             ax.plot(seq[:150], color=blue, lw=1)

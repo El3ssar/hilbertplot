@@ -72,7 +72,12 @@ $J[y,x]=(I[y,x]-\bar I)w[y]w[x]$.
 For five samples, the one-dimensional weights are `[0, 0.5, 1, 0.5, 0]`.
 Borders receive zero weight; the centre receives the largest weight.
 
-![Thue–Morse spectra with and without the Hann window](../_static/generated/windows.png)
+```{raw} html
+<div class="plot-pair">
+<figure><img src="../_static/generated/window-off.png" alt="Thue-Morse spectrum without a Hann window"></figure>
+<figure><img src="../_static/generated/window-on.png" alt="Thue-Morse spectrum with a Hann window"></figure>
+</div>
+```
 
 Tapering reduces discontinuities at the image edges, but changes amplitudes and
 broadens spectral peaks. There is no gain correction. NumPy's length-one window is
@@ -80,7 +85,13 @@ broadens spectral peaks. There is no gain correction. NumPy's length-one window 
 
 ## Dependence on the curve
 
-![Thue–Morse spectra obtained with three different curves, using magma](../_static/generated/spectra.png)
+```{raw} html
+<div class="plot-three">
+<figure><img src="../_static/generated/spectrum-0.png" alt="Thue-Morse spectrum mapped with curve 0"></figure>
+<figure><img src="../_static/generated/spectrum-12.png" alt="Thue-Morse spectrum mapped with curve 12"></figure>
+<figure><img src="../_static/generated/spectrum-24.png" alt="Thue-Morse spectrum mapped with curve 24"></figure>
+</div>
+```
 
 The same sequence produces different 2-D images under different curves and therefore
 different spectra. These three plots each use their own 2nd/99.5th percentile limits;

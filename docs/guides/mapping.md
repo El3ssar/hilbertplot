@@ -31,10 +31,16 @@ orientation, not the ordering used in conversion.
 
 ## Visit indices versus measurements
 
-The following arrays contain visit indices, not an independent measurement signal.
-Their patterns show how each curve orders the grid.
+These 4 × 4 arrays contain visit indices for Hilbert and Moore at order 2.
+For example, cell `(0,0)` has the index printed in the lower-left corner.
+The index arrays differ because the curves visit the cells in different orders.
 
-![Visit indices on two curve paths](../_static/generated/labels.png)
+```{raw} html
+<div class="plot-pair">
+<figure><img src="../_static/generated/labels-hilbert.png" alt="Hilbert visit indices zero to fifteen"></figure>
+<figure><img src="../_static/generated/labels-moore.png" alt="Moore visit indices zero to fifteen"></figure>
+</div>
+```
 
 ```python
 points = hp.curves.points(0, order=3)
@@ -46,8 +52,6 @@ for i, (x, y) in enumerate(points):
 Plotting a measurement sequence assigns colors to its values. The path specifies
 where those colors appear. Curve choice can therefore change the apparent spatial
 pattern without changing the input samples.
-
-![The same ascending values arranged along four curves](../_static/generated/curves_signal.png)
 
 ## Plotting and conversion have different outputs
 

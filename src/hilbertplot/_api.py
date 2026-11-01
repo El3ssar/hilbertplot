@@ -169,12 +169,6 @@ def plot(
     from ._viz.hilbert_plot import _check_transforms
 
     _check_transforms(fourier, difference)
-    for name in ("view", "panels", "overlay", "difference_threshold", "difference_color"):
-        if name in style:
-            raise TypeError(
-                f"plot() does not accept {name!r}; use fourier=True or difference=True "
-                "for a single transformed image"
-            )
     result = _data_plot(data, curve)
     _check_size(result, order, fit)
     axes = result.draw(
@@ -516,6 +510,12 @@ def proper() -> list[dict]:
         Metadata in index order, using the same keys as curves.info. Safe to
         pass directly to gallery; no library-defined objects are returned.
 
+    Notes
+    -----
+    Indices 0-5 assemble four rotated/reflected copies of the lower-order
+    standard Hilbert path (kernel 0). For example, an order-3 Moore path
+    contains four order-2 Hilbert paths, rather than four smaller Moore paths.
+
     See Also
     --------
     hilbertplot.curves.info : Metadata keys and curve selection.
@@ -532,6 +532,13 @@ def improper() -> list[dict]:
     curves : list of dict
         Metadata in index order, using the same keys as curves.info. Safe to
         pass directly to gallery; no library-defined objects are returned.
+
+    Notes
+    -----
+    Indices 6-11 assemble four copies of the lower-order Liu4 path (kernel 5).
+    The rules reverse selected copies to connect their endpoints. Reversal
+    exchanges entry and exit without moving the cells; it is distinct from
+    reflecting the path. These paths remain connected and cover every cell.
 
     See Also
     --------
@@ -550,6 +557,12 @@ def homogeneous() -> list[dict]:
         Metadata in index order, using the same keys as curves.info. Safe to
         pass directly to gallery; no library-defined objects are returned.
 
+    Notes
+    -----
+    All four quadrants use the same lower-order kernel type, although its
+    orientation and traversal direction may differ. Indices 0-5 use Hilbert;
+    indices 6-11 use Liu4. Homogeneity describes construction, not data values.
+
     See Also
     --------
     hilbertplot.curves.info : Metadata keys and curve selection.
@@ -566,6 +579,13 @@ def inhomogeneous() -> list[dict]:
     curves : list of dict
         Metadata in index order, using the same keys as curves.info. Safe to
         pass directly to gallery; no library-defined objects are returned.
+
+    Notes
+    -----
+    Indices 12-39 mix different lower-order kernel types within one assembly.
+    For example, curve 12 uses Liu2 in the bottom quadrants and Liu4 in the top
+    quadrants. Rotating four copies of a single kernel does not create an
+    inhomogeneous construction.
 
     See Also
     --------

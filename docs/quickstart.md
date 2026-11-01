@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import hilbertplot as hp
 
-values = np.sin(np.arange(1000) / 15)
+t = np.arange(4096)
+values = np.sin(2 * np.pi * t / 97) + 0.4 * np.cos(2 * np.pi * t / 31)
 fig = hp.plot(values, curve=12)
 plt.show()
 ```
@@ -46,7 +47,13 @@ A colour list defines a smooth gradient: low values use its first colour, middle
 pass through the intermediate colours, and high values use its last colour. It does not
 assign colours to categories.
 
-![Sequential, diverging and custom colormaps on the same signed values](_static/generated/colors.png)
+```{raw} html
+<div class="plot-three">
+<figure><img src="_static/generated/color-sequential.png" alt="Sequential colormap on signed measurements"><figcaption>Sequential: color increases across the full numeric range.</figcaption></figure>
+<figure><img src="_static/generated/color-diverging.png" alt="Diverging colormap centered on zero"><figcaption>Diverging: zero is neutral; negative and positive values have different hues.</figcaption></figure>
+<figure><img src="_static/generated/color-custom.png" alt="Custom three-stop gradient"><figcaption>Custom gradient: the supplied colors are interpolation stops.</figcaption></figure>
+</div>
+```
 
 ## Color normalization
 
@@ -55,7 +62,8 @@ For positive values with a large dynamic range:
 ```python
 from matplotlib.colors import LogNorm
 
-hp.plot(np.exp(values), norm=LogNorm(), colorbar=True)
+positive = np.exp(3 * np.sin(t / 37))
+hp.plot(positive, cmap="inferno", norm=LogNorm(vmin=np.exp(-3), vmax=np.exp(3)))
 ```
 
 Use either `norm=` or `vmin`/`vmax`. When passing a norm, put limits on the norm itself.
@@ -71,10 +79,18 @@ A colourbar is enabled by default. Pass `colorbar=False` to omit it.
 
 ## Missing values
 
+```python
+missing = values.copy()
+missing[300:700] = np.nan
+fig = hp.plot(missing, cmap="RdBu_r")
+```
+
 NaNs and masked samples are transparent in the data image. Infinities are rejected.
 Replace infinities using an explicit policy appropriate to the data before plotting.
 
-![A missing sequence interval displayed as empty cells](_static/generated/missing.png)
+```{raw} html
+<figure><img src="_static/generated/missing.png" alt="A missing sequence interval displayed as empty cells"></figure>
+```
 
 ## Curve rendering
 
@@ -82,4 +98,9 @@ Replace infinities using an explicit policy appropriate to the data before plott
 uses one line color; `cmap=` colors visit order. `mode="fill"` colors cells by visit
 order. Automatic mode uses lines below order 8 and filled cells at larger orders.
 
-![Line and filled-cell representations of the same curve](_static/generated/modes.png)
+```{raw} html
+<div class="plot-pair">
+<figure><img src="_static/generated/mode-line.png" alt="Hilbert curve drawn as a line"><figcaption>Line mode shows the connected path.</figcaption></figure>
+<figure><img src="_static/generated/mode-fill.png" alt="Hilbert cells colored by visit order"><figcaption>Fill mode shows visit order as a field of colored cells.</figcaption></figure>
+</div>
+```
