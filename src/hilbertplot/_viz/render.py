@@ -106,15 +106,15 @@ def figure_png(ax: Axes) -> bytes:
     return buffer.getvalue()
 
 
-def _draw_fill(ax, pts, side, cmap):
-    img = np.empty((side, side), dtype=np.float32)
+def _draw_fill(ax, pts, rows, columns, cmap):
+    img = np.empty((rows, columns), dtype=np.float32)
     img[pts[:, 1], pts[:, 0]] = np.linspace(0.0, 1.0, len(pts), dtype=np.float32)
     ax.imshow(
         img,
         cmap=cmap,
         origin="lower",
         interpolation="nearest",
-        extent=(-0.5, side - 0.5, -0.5, side - 0.5),
+        extent=(-0.5, columns - 0.5, -0.5, rows - 0.5),
     )
 
 
@@ -144,9 +144,10 @@ def _draw_line(ax, pts, order, color, cmap, linewidth):
 
 def draw(
     curve: Curve,
-    order: int,
+    order: int | None = None,
     ax: Axes | None = None,
     *,
+    shape: tuple[int, int] | None = None,
     mode: str = "auto",
     color: str | None = None,
     cmap: str = "viridis",
@@ -158,16 +159,28 @@ def draw(
     if mode not in _MODES:
         legal = ", ".join(repr(name) for name in _MODES)
         raise ValueError(f"mode must be one of {legal}, got {mode!r}")
+    if shape is not None:
+        from .._core.arbitrary import check_shape, shape_points
+
+        if order is not None:
+            raise ValueError("choose either order or shape, not both")
+        rows, columns = check_shape(shape)
+        pts = shape_points(curve.index, (rows, columns))
+        order = (max(rows, columns) - 1).bit_length()
+        size_title = f"{rows}x{columns}"
+    else:
+        order = 4 if order is None else order
+        pts = curve.points(order)
+        rows = columns = 2**order
+        size_title = f"order {order}"
     plt = pyplot()
-    pts = curve.points(order)
-    side = 2**order
     if ax is None:
         _, ax = plt.subplots(figsize=(5, 5))
     if mode == "auto":
         mode = "fill" if order >= _AUTO_FILL_ORDER else "line"
 
     if mode == "fill":
-        _draw_fill(ax, pts, side, cmap)
+        _draw_fill(ax, pts, rows, columns, cmap)
     else:
         _draw_line(ax, pts, order, color, cmap, linewidth)
         if endpoints:
@@ -175,9 +188,11 @@ def draw(
             ax.plot(*pts[0], "o", color="black", markersize=ms, zorder=3)  # entry
             ax.plot(*pts[-1], "s", color="black", markersize=ms, zorder=3)  # exit
 
-    bare_axes(ax, side)
+    bare_axes(ax)
+    ax.set_xlim(-0.75, columns - 0.25)
+    ax.set_ylim(-0.75, rows - 0.25)
     if title is None:
-        title = f"{curve.symbol} ({curve.name}), order {order}"
+        title = f"{curve.symbol} ({curve.name}), {size_title}"
     ax.set_title(title, fontsize=9)
     return ax
 
@@ -193,15 +208,15 @@ def gallery(
     color: str | None = None,
     title: str | None = None,
     dpi: int = 140,
+    show: bool = True,
 ) -> Figure:
     """Draw a grid of curves; show it, or save it if ``save=`` is given.
 
     Parameters
     ----------
     curves : iterable of Curve
-        The curves to draw, e.g. ``hilbertplot.homogeneous()`` or
-        ``hilbertplot.by_kernels(3, 5)``.  Any iterable of :class:`~hilbertplot.Curve`
-        works; it is consumed once.
+        The curves to draw, e.g. ``hilbertplot.curves.homogeneous()`` or
+        Any iterable of internal Curve handles works; it is consumed once.
     order : int, default 3
         Order at which to draw every curve.
     ncols : int, optional
@@ -209,7 +224,7 @@ def gallery(
     save : str, optional
         If given, save the figure to this path and close it; otherwise open a window.
     mode : {"auto", "line", "fill"}, default "auto"
-        Render mode passed to each panel (see :meth:`hilbertplot.Curve.draw`).
+        Render mode passed to each panel (see :meth:`hilbertplot._core.curve.Curve.draw`).
     cmap : str, default "viridis"
         Colormap for the gradient/fill rendering.
     color : str, optional
@@ -231,8 +246,8 @@ def gallery(
     Examples
     --------
     >>> import hilbertplot
-    >>> figure = hilbertplot.gallery(hilbertplot.proper(), order=3)      # doctest: +SKIP
-    >>> hilbertplot.gallery(hilbertplot.improper(), save="improper.png")  # doctest: +SKIP
+    >>> figure = hilbertplot.gallery(hilbertplot.curves.proper(), order=3)      # doctest: +SKIP
+    >>> hilbertplot.gallery(hilbertplot.curves.improper(), save="improper.png")  # doctest: +SKIP
     """
     plt = pyplot()
     curves = list(curves)
@@ -259,6 +274,6 @@ def gallery(
             fig.savefig(save, dpi=dpi, bbox_inches="tight")
         finally:
             plt.close(fig)
-    else:
+    elif show:
         plt.show()
     return fig

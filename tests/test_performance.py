@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 import hilbertplot as hp
+from hilbertplot._core import curve as curves
 
 
 def _fastest(call, repeats: int = 3) -> float:
@@ -35,7 +36,7 @@ def test_arbitrary_square_fill_is_not_slower_than_the_power_of_two_path(order):
     The block-memoised fill is normally *faster* than the stroke construction.  A generous
     4x ceiling still catches a regression to per-cell Python recursion, which was ~17x.
     """
-    curve = hp.curve(0)
+    curve = curves.curve(0)
     grid = _fastest(lambda: curve.grid(2**order))
     points = _fastest(lambda: curve.points(order))
     assert grid < points * 4, (
@@ -46,7 +47,7 @@ def test_arbitrary_square_fill_is_not_slower_than_the_power_of_two_path(order):
 
 def test_grid_scales_roughly_with_area():
     """Doubling the side quadruples the cells; time must not grow far faster than that."""
-    curve = hp.curve(0)
+    curve = curves.curve(0)
     small = _fastest(lambda: curve.grid(256))
     large = _fastest(lambda: curve.grid(512))
     # 4x the work; allow 12x for constant factors and noise. Per-cell recursion blows this.
@@ -64,26 +65,26 @@ def test_repeated_renders_do_not_rebuild_the_curve_from_scratch():
     and a flaky timing assertion in a repo that squash-merges on green is worse than no
     assertion at all.  ``test_arbitrary_square_fill_...`` carries the timing signal.
     """
-    curve = hp.curve(0)
-    hp.clear_cache()
-    assert hp.cache_info().currsize == 0
+    curve = curves.curve(0)
+    hp.config.clear_cache()
+    assert hp.config.cache_info().currsize == 0
 
     curve.word(9)
-    after_cold = hp.cache_info()
+    after_cold = hp.config.cache_info()
     assert after_cold.misses > 0, "a cold build should have missed the memo"
 
     curve.word(9)
-    after_warm = hp.cache_info()
+    after_warm = hp.config.cache_info()
     assert after_warm.hits > after_cold.hits, "a repeat build did not hit the memo"
     assert after_warm.misses == after_cold.misses, "a repeat build recomputed something"
 
-    hp.clear_cache()
-    assert hp.cache_info().currsize == 0
+    hp.config.clear_cache()
+    assert hp.config.cache_info().currsize == 0
 
 
 def test_difference_map_stays_within_reach_of_a_single_pass():
     """It accumulates 8 neighbour offsets, so ~8 passes over the grid is the floor."""
-    curve = hp.curve(0)
+    curve = curves.curve(0)
     order = 8
     points = curve.points(order)
     side = 2**order
@@ -97,9 +98,9 @@ def test_difference_map_stays_within_reach_of_a_single_pass():
 
 def test_single_cell_index_maths_beats_building_the_curve():
     """``encode`` is the whole reason to have index maths; it must be O(order), not O(4**order)."""
-    curve = hp.curve(0)
+    curve = curves.curve(0)
     order = 10
-    hp.clear_cache()
+    hp.config.clear_cache()
     build = _timed(lambda: curve.points(order))
     encode = _fastest(lambda: curve.encode(4**order // 2, order), repeats=5)
     assert encode * 100 < build, (

@@ -43,10 +43,10 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           git_committer_name: "github-actions[bot]"
           git_committer_email: "github-actions[bot]@users.noreply.github.com"
-          # The action runs inside a Docker container that does NOT ship uv, so
-          # the uv-based build_command cannot run here. Building is delegated to
-          # the publish job below, which rebuilds from the freshly created tag.
-          build: false
+          # Run the configured hook AFTER PSR stamps the new version and BEFORE
+          # its release commit/tag. The hook installs uv in this Docker container
+          # if needed, refreshes uv.lock, and builds the candidate artifacts.
+          build: true
       # NOTE: the commit + tag are pushed with GITHUB_TOKEN. GitHub's platform
       # rule means that push does NOT trigger another Release run, so there is
       # no infinite loop.
@@ -73,7 +73,9 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Build sdist + wheel
-        run: uv build # writes dist/*.tar.gz and dist/*.whl
+        run: |
+          uv lock --check
+          uv build # writes dist/*.tar.gz and dist/*.whl
 
       - name: Publish to PyPI via OIDC
         uses: pypa/gh-action-pypi-publish@release/v1

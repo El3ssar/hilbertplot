@@ -13,6 +13,10 @@ import numpy as np
 import pytest
 
 import hilbertplot as hp
+from hilbertplot._core import curve as curves
+from hilbertplot._viz.hilbert_plot import HilbertPlot as _HilbertPlot
+from hilbertplot._viz.hilbert_plot import hilbert_plot as make_plot
+from hilbertplot._viz.render import gallery as draw_gallery
 
 FEASIBLE = [0, 3, 4, 5, 24, 29, 30, 31]
 
@@ -25,21 +29,21 @@ def test_difference_map_is_warning_free_at_every_order(order):
     """Order 0 used to divide 0/0, emitting a RuntimeWarning and returning NaN."""
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        result = hp.curve(0).difference_map(order)
+        result = curves.curve(0).difference_map(order)
     assert result.shape == (2**order, 2**order)
     assert np.isfinite(result).all()
     assert (result >= 0).all()
 
 
 def test_difference_map_of_a_single_cell_is_zero():
-    assert hp.curve(0).difference_map(0).tolist() == [[0.0]]
+    assert curves.curve(0).difference_map(0).tolist() == [[0.0]]
 
 
-def test_difference_overlay_survives_a_degenerate_grid():
+def test_difference_map_survives_a_degenerate_grid():
     pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        ax = hp.hilbert_plot(0, [1.0]).draw(difference=True)
+        ax = make_plot(0, [1.0]).draw(difference=True)
     assert ax is not None
 
 
@@ -51,14 +55,14 @@ def test_difference_overlay_survives_a_degenerate_grid():
 def test_image_is_warning_free(data):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        hp.hilbert_plot(0, data).image()
+        make_plot(0, data).image()
 
 
 def test_fourier_is_warning_free_on_padded_data():
     """Padding leaves NaN cells, which fourier_spectrum has to fill before transforming."""
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        spec = hp.hilbert_plot(1, np.arange(1000.0)).fourier()  # Moore pads to 32x32
+        spec = make_plot(1, np.arange(1000.0)).fourier()  # Moore pads to 32x32
     assert np.isfinite(spec).all()
 
 
@@ -66,7 +70,7 @@ def test_fourier_is_warning_free_on_padded_data():
 # The data buffer must be genuinely immutable, not merely flagged.
 # --------------------------------------------------------------------------
 def test_plot_data_cannot_be_mutated_through_the_property():
-    plot = hp.hilbert_plot(0, np.arange(16.0))
+    plot = make_plot(0, np.arange(16.0))
     exposed = plot.data
     assert not exposed.flags.writeable
     with pytest.raises(ValueError, match="read-only"):
@@ -79,7 +83,7 @@ def test_plot_data_cannot_be_mutated_through_the_property():
 
 def test_plot_does_not_alias_the_caller_array():
     source = np.arange(16.0)
-    plot = hp.hilbert_plot(0, source)
+    plot = make_plot(0, source)
     source[0] = 999.0
     assert plot.data[0] == 0.0
 
@@ -90,12 +94,12 @@ def test_plot_does_not_alias_the_caller_array():
 def test_bad_fit_is_rejected_even_when_order_is_given():
     """fit= used to be ignored entirely whenever order= was passed."""
     with pytest.raises(ValueError, match="fit must be one of"):
-        hp.hilbert_plot(0, np.arange(64.0)).image(order=3, fit="utter-nonsense")
+        make_plot(0, np.arange(64.0)).image(order=3, fit="utter-nonsense")
 
 
 def test_fit_error_names_every_legal_value():
     with pytest.raises(ValueError, match="fit must be one of") as exc:
-        hp.hilbert_plot(0, [1.0, 2.0]).image(fit="nope")
+        make_plot(0, [1.0, 2.0]).image(fit="nope")
     message = str(exc.value)
     for legal in ("auto", "square", "pad", "truncate"):
         assert legal in message
@@ -104,43 +108,43 @@ def test_fit_error_names_every_legal_value():
 @pytest.mark.parametrize("order", [-1, -5])
 def test_negative_order_is_rejected(order):
     with pytest.raises(ValueError, match="non-negative"):
-        hp.hilbert_plot(0, np.arange(16.0)).image(order=order)
+        make_plot(0, np.arange(16.0)).image(order=order)
 
 
 # --------------------------------------------------------------------------
 # curve() lookup: strict about types, tolerant about spelling
 # --------------------------------------------------------------------------
 def test_curve_is_idempotent():
-    original = hp.curve(7)
-    assert hp.curve(original) is original
+    original = curves.curve(7)
+    assert curves.curve(original) is original
 
 
 def test_curve_accepts_numpy_integers():
-    assert hp.curve(np.int64(3)).index == 3
+    assert curves.curve(np.int64(3)).index == 3
 
 
 @pytest.mark.parametrize("bad", [True, False])
 def test_curve_rejects_bool(bad):
     """bool is an int subclass, so curve(True) used to silently return Moore."""
     with pytest.raises(TypeError):
-        hp.curve(bad)
+        curves.curve(bad)
 
 
 @pytest.mark.parametrize("bad", [3.0, 3.5, None, (), b"Moore"])
 def test_curve_rejects_non_integer_non_string(bad):
     with pytest.raises(TypeError):
-        hp.curve(bad)
+        curves.curve(bad)
 
 
 @pytest.mark.parametrize("bad", [-1, 40, 1000])
 def test_curve_rejects_out_of_range_index(bad):
     with pytest.raises(IndexError):
-        hp.curve(bad)
+        curves.curve(bad)
 
 
 def test_curve_rejects_unknown_name_with_a_helpful_error():
     with pytest.raises(KeyError, match="did you mean"):
-        hp.curve("Morre")  # typo -> the message should suggest real names
+        curves.curve("Morre")  # typo -> the message should suggest real names
 
 
 # --------------------------------------------------------------------------
@@ -149,24 +153,24 @@ def test_curve_rejects_unknown_name_with_a_helpful_error():
 @pytest.mark.parametrize("bad", [0, -1])
 def test_grid_rejects_non_positive_n(bad):
     with pytest.raises(ValueError, match="n must be >= 1"):
-        hp.curve(0).grid(bad)
+        curves.curve(0).grid(bad)
 
 
 @pytest.mark.parametrize("bad", [2.5, 4.0, None, "8"])
 def test_grid_rejects_non_integer_n(bad):
     with pytest.raises(TypeError):
-        hp.curve(0).grid(bad)
+        curves.curve(0).grid(bad)
 
 
 def test_points_refuses_an_order_that_cannot_fit_in_memory():
     """An order of 20 is 10^12 cells; it must say so rather than exhaust the machine."""
     with pytest.raises(ValueError, match=r"cell limit|GiB"):
-        hp.curve(0).points(20)
+        curves.curve(0).points(20)
 
 
 def test_grid_refuses_a_side_that_cannot_fit_in_memory():
     with pytest.raises(ValueError, match=r"cell limit|GiB"):
-        hp.curve(0).grid(10_000_000)
+        curves.curve(0).grid(10_000_000)
 
 
 # --------------------------------------------------------------------------
@@ -175,11 +179,11 @@ def test_grid_refuses_a_side_that_cannot_fit_in_memory():
 @pytest.mark.parametrize("bad", [0, -1])
 def test_granularity_must_be_positive(bad):
     with pytest.raises(ValueError, match="granularity"):
-        hp.hilbert_plot(0, np.arange(16.0)).image(granularity=bad)
+        make_plot(0, np.arange(16.0)).image(granularity=bad)
 
 
 def test_granularity_larger_than_the_data_flattens_it():
-    image = hp.hilbert_plot(0, np.arange(16.0)).image(granularity=100)
+    image = make_plot(0, np.arange(16.0)).image(granularity=100)
     assert np.allclose(image[np.isfinite(image)], np.arange(16.0).mean())
 
 
@@ -191,20 +195,20 @@ def test_granularity_larger_than_the_data_flattens_it():
 )
 def test_unroll_rejects_non_square_or_wrong_rank(array):
     with pytest.raises(ValueError, match=r"square 2-D array|side >= 1"):
-        hp.curve(0).unroll(array)
+        curves.curve(0).unroll(array)
 
 
 def test_unroll_accepts_a_nested_list():
-    assert hp.curve(0).unroll([[0, 1], [3, 2]]).tolist() == [0, 3, 2, 1]
+    assert curves.curve(0).unroll([[0, 1], [3, 2]]).tolist() == [0, 3, 2, 1]
 
 
 @pytest.mark.parametrize("index", FEASIBLE)
 @pytest.mark.parametrize("side", [1, 3, 7, 10, 15])
 def test_unroll_round_trips_at_arbitrary_sides_for_every_generalizing_curve(index, side):
     data = np.arange(side * side, dtype=float)
-    image = hp.hilbert_plot(index, data).image()
+    image = make_plot(index, data).image()
     assert image.shape == (side, side)
-    assert np.array_equal(hp.curve(index).unroll(image), data)
+    assert np.array_equal(curves.curve(index).unroll(image), data)
 
 
 # --------------------------------------------------------------------------
@@ -221,13 +225,13 @@ def test_every_render_entry_point_explains_how_to_install_matplotlib(monkeypatch
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", without_matplotlib)
-    plot = hp.hilbert_plot(0, np.arange(16.0))
+    plot = make_plot(0, np.arange(16.0))
     entry_points = [
-        lambda: hp.curve(0).draw(2),
-        lambda: hp.curve(0).show(2),
+        lambda: curves.curve(0).draw(2),
+        lambda: curves.curve(0).show(2),
         lambda: plot.draw(),
         lambda: plot.show(),
-        lambda: hp.gallery(hp.proper()),
+        lambda: draw_gallery(curves.proper()),
     ]
     for call in entry_points:
         with pytest.raises(ModuleNotFoundError, match="matplotlib"):
@@ -245,13 +249,13 @@ def test_the_whole_compute_path_works_without_matplotlib(monkeypatch):
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", without_matplotlib)
-    curve = hp.curve(0)
+    curve = curves.curve(0)
     assert curve.points(3).shape == (64, 2)
     assert curve.grid(10).shape == (100, 2)
     assert len(curve.word(3)) == 63
     assert curve.difference_map(3).shape == (8, 8)
-    assert hp.hilbert_plot(0, np.arange(100.0)).image().shape == (10, 10)
-    assert hp.hilbert_plot(0, np.arange(100.0)).fourier().shape == (10, 10)
+    assert make_plot(0, np.arange(100.0)).image().shape == (10, 10)
+    assert make_plot(0, np.arange(100.0)).fourier().shape == (10, 10)
     assert curve.unroll(np.zeros((8, 8))).shape == (64,)
 
 
@@ -261,12 +265,12 @@ def test_the_whole_compute_path_works_without_matplotlib(monkeypatch):
 def test_clear_cache_is_public_and_frees_the_generation_memo():
     from hilbertplot._core.generation import _codes
 
-    hp.curve(0).points(6)
+    curves.curve(0).points(6)
     assert _codes.cache_info().currsize > 0
-    hp.clear_cache()
+    hp.config.clear_cache()
     assert _codes.cache_info().currsize == 0
     # and the library still works afterwards
-    assert hp.curve(0).points(3).shape == (64, 2)
+    assert curves.curve(0).points(3).shape == (64, 2)
 
 
 # --------------------------------------------------------------------------
@@ -274,16 +278,16 @@ def test_clear_cache_is_public_and_frees_the_generation_memo():
 # --------------------------------------------------------------------------
 def test_non_numeric_data_is_rejected_clearly():
     with pytest.raises((TypeError, ValueError)):
-        hp.hilbert_plot(0, ["a", "b", "c"])
+        make_plot(0, ["a", "b", "c"])
 
 
 def test_empty_data_is_rejected():
     with pytest.raises(ValueError, match="empty"):
-        hp.hilbert_plot(0, [])
+        make_plot(0, [])
 
 
 def test_two_dimensional_input_is_flattened_in_reading_order():
-    plot = hp.hilbert_plot(0, np.arange(16.0).reshape(4, 4))
+    plot = make_plot(0, np.arange(16.0).reshape(4, 4))
     assert len(plot) == 16
     assert plot.data.tolist() == list(range(16))
 
@@ -296,11 +300,12 @@ def _public_callables():
     from typing import get_type_hints  # noqa: F401 - imported by the caller
 
     found = []
-    for name in hp.__all__:
-        obj = getattr(hp, name)
-        if callable(obj) and not isinstance(obj, type):
-            found.append((name, obj))
-    for cls in (hp.Curve, hp.CurveList, hp.HilbertPlot):
+    for namespace in (hp, hp.curves, hp.data, hp.config):
+        for name in namespace.__all__:
+            obj = getattr(namespace, name)
+            if callable(obj) and not isinstance(obj, type):
+                found.append((f"{namespace.__name__}.{name}", obj))
+    for cls in (curves.Curve, curves.CurveList, _HilbertPlot):
         for attr in dir(cls):
             if attr.startswith("__"):
                 continue
@@ -361,7 +366,7 @@ def test_importing_the_package_does_not_import_matplotlib():
 def test_fourier_knobs_are_reachable_from_draw():
     """`fourier()` grew `remove_dc`; `draw(fourier=True)` must expose the same knob."""
     pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
-    plot = hp.hilbert_plot(0, np.tile([1.0, 0.0], 512))
+    plot = make_plot(0, np.tile([1.0, 0.0], 512))
     with_dc = plot.draw(fourier=True, remove_dc=False).images[-1].get_array()
     without = plot.draw(fourier=True, remove_dc=True).images[-1].get_array()
     assert not np.array_equal(with_dc, without)
@@ -371,12 +376,12 @@ def test_a_typo_of_a_draw_parameter_is_caught_not_forwarded_to_matplotlib():
     """Otherwise it surfaces as `AxesImage.set() got an unexpected keyword argument`."""
     pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
     with pytest.raises(TypeError, match="did you mean 'granularity'"):
-        hp.hilbert_plot(0, np.arange(64.0)).draw(granularty=4)
+        make_plot(0, np.arange(64.0)).draw(granularty=4)
 
 
 def test_genuine_imshow_keywords_still_reach_matplotlib():
     pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
-    ax = hp.hilbert_plot(0, np.arange(64.0)).draw(alpha=0.5, zorder=7)
+    ax = make_plot(0, np.arange(64.0)).draw(alpha=0.5, zorder=7)
     assert ax.images[-1].get_alpha() == 0.5
 
 
@@ -386,24 +391,24 @@ def test_curve_show_and_save_forward_ax_like_hilbertplot_does(tmp_path, monkeypa
 
     monkeypatch.setattr(plt, "show", lambda *a, **k: None)
     _, ax = plt.subplots()
-    assert hp.curve(0).show(3, ax=ax) is ax
+    assert curves.curve(0).show(3, ax=ax) is ax
     _, ax2 = plt.subplots()
     out = tmp_path / "on-my-axes.png"
-    assert hp.curve(0).save(str(out), 3, ax=ax2) == str(out)
+    assert curves.curve(0).save(str(out), 3, ax=ax2) == str(out)
     assert out.exists()
 
 
 def test_a_bad_n_blames_the_argument_not_the_curve():
     """`grid(-2)` on an infeasible curve used to quote a size the caller never passed."""
     with pytest.raises(ValueError, match="n must be >= 1"):
-        hp.curve("Moore").grid(-2)
+        curves.curve("Moore").grid(-2)
     with pytest.raises(TypeError, match="n must be an int"):
-        hp.curve("Moore").grid("10")
+        curves.curve("Moore").grid("10")
 
 
 def test_plot_level_difference_and_label_maps_follow_the_plot_grid():
     """Curve.difference_map is 2**k-only; the plot's own grid may be an arbitrary square."""
-    plot = hp.hilbert_plot(0, np.arange(100.0))  # tight 10x10, the fit="auto" default
+    plot = make_plot(0, np.arange(100.0))  # tight 10x10, the fit="auto" default
     assert plot.image().shape == (10, 10)
     assert plot.difference_map().shape == (10, 10)
     assert plot.label_map().shape == (10, 10)
@@ -412,46 +417,46 @@ def test_plot_level_difference_and_label_maps_follow_the_plot_grid():
 
 def test_unknown_name_only_suggests_when_there_is_a_real_match():
     with pytest.raises(KeyError, match="did you mean one of 'Hilbert'"):
-        hp.curve("Hilbrt")
-    with pytest.raises(KeyError, match=re.escape("see hilbertplot.catalog")):
-        hp.curve("zzzzzz")
+        curves.curve("Hilbrt")
+    with pytest.raises(KeyError, match=re.escape("see hilbertplot.curves.catalog")):
+        curves.curve("zzzzzz")
 
 
 def test_curves_are_orderable_so_curvelists_sort():
-    assert [c.name for c in sorted(hp.catalog())[:3]] == ["Hilbert", "Moore", "Liu1"]
-    assert max(hp.proper()).index == 5
-    assert min(hp.improper()).index == 6
-    assert hp.curve(0) < hp.curve(1)
-    assert hp.curve(0).__lt__("not a curve") is NotImplemented
+    assert [c.name for c in sorted(curves.catalog())[:3]] == ["Hilbert", "Moore", "Liu1"]
+    assert max(curves.proper()).index == 5
+    assert min(curves.improper()).index == 6
+    assert curves.curve(0) < curves.curve(1)
+    assert curves.curve(0).__lt__("not a curve") is NotImplemented
 
 
-def test_exported_curve_class_rejects_a_non_spec():
-    """`Curve` is exported for isinstance/type hints; it has no public constructor call."""
-    with pytest.raises(TypeError, match=re.escape("use hilbertplot.curve")):
-        hp.Curve(0)
+def test_internal_curve_class_rejects_a_non_spec():
+    """Internal handles require a real specification."""
+    with pytest.raises(TypeError, match="Curve is internal"):
+        curves.Curve(0)
 
 
 def test_the_cell_limit_message_quotes_the_size_actually_being_built():
     """A word is one byte per stroke, not a 16-byte coordinate pair."""
     with pytest.raises(ValueError, match=re.escape("1,024.0 GiB")):
-        hp.curve(0).word(20)
+        curves.curve(0).word(20)
     with pytest.raises(ValueError, match=re.escape("16,384.0 GiB")):
-        hp.curve(0).points(20)
+        curves.curve(0).points(20)
 
 
 def test_set_cell_limit_actually_reaches_the_guards():
     """A module-level constant read at import time would not; a function read at call time does."""
-    previous = hp.set_cell_limit(4**5)
+    previous = hp.config.set_cell_limit(4**5)
     try:
-        assert hp.cell_limit() == 4**5
-        hp.curve(0).points(5)  # exactly at the limit
+        assert hp.config.cell_limit() == 4**5
+        curves.curve(0).points(5)  # exactly at the limit
         with pytest.raises(ValueError, match="cell limit"):
-            hp.curve(0).points(6)
+            curves.curve(0).points(6)
         with pytest.raises(ValueError, match="cell limit"):
-            hp.curve(0).grid(64)
+            curves.curve(0).grid(64)
     finally:
-        hp.set_cell_limit(previous)
-    hp.curve(0).points(6)  # restored
+        hp.config.set_cell_limit(previous)
+    curves.curve(0).points(6)  # restored
 
 
 # --------------------------------------------------------------------------
@@ -470,7 +475,7 @@ def test_set_cell_limit_actually_reaches_the_guards():
 def test_data_is_immutable_through_every_route(make):
     """Freezing ndarray flags is not enough: an owner may always re-arm its own flag, and
     reshaping a non-contiguous input yields a fresh writable owner reachable as `.base`."""
-    plot = hp.hilbert_plot(0, make())
+    plot = make_plot(0, make())
     before = plot.data.copy()
     exposed = plot.data
     with pytest.raises(ValueError, match="read-only"):
@@ -489,7 +494,7 @@ def test_data_is_immutable_through_every_route(make):
 def test_masked_data_becomes_nan_rather_than_the_fill_value():
     """Masked entries are missing, not zero; NaN is what the renderer draws as blank."""
     masked = np.ma.masked_array([10.0, 20.0, 30.0, 40.0], mask=[True, False, True, False])
-    plot = hp.hilbert_plot(0, masked)
+    plot = make_plot(0, masked)
     assert np.isnan(plot.data[0])
     assert np.isnan(plot.data[2])
     assert plot.data[1] == 20.0
@@ -503,25 +508,25 @@ def test_an_absurd_order_still_reports_the_cell_limit(call, kwargs):
     """The size arithmetic overflowed float above order 524, raising OverflowError from the
     one function whose whole job is to fail with a helpful message."""
     with pytest.raises(ValueError, match="cell limit"):
-        getattr(hp.curve(0), call)(600, **kwargs)
+        getattr(curves.curve(0), call)(600, **kwargs)
 
 
 def test_an_absurd_grid_side_still_reports_the_cell_limit():
     with pytest.raises(ValueError, match="cell limit"):
-        hp.curve(0).grid(10**200)
+        curves.curve(0).grid(10**200)
 
 
 @pytest.mark.parametrize("bad", [True, False, 2.5, 3.0, "3", None])
 def test_granularity_is_type_checked_even_when_it_would_be_a_no_op(bad):
     """`granularity=True` used to slip through as "no coarsening" and yield a wrong plot."""
     with pytest.raises(TypeError, match="granularity must be an int"):
-        hp.hilbert_plot(0, np.arange(64.0)).image(granularity=bad)
+        make_plot(0, np.arange(64.0)).image(granularity=bad)
 
 
 def test_is_space_filling_accepts_any_array_like():
     """It is exported as the tool for checking your own path; a list is the natural literal."""
-    assert hp.is_space_filling([[0, 0], [0, 1], [1, 1], [1, 0]], 2)
-    assert not hp.is_space_filling([[0, 0], [1, 1]], 2)
+    assert hp.curves.is_space_filling([[0, 0], [0, 1], [1, 1], [1, 0]], 2)
+    assert not hp.curves.is_space_filling([[0, 0], [1, 1]], 2)
 
 
 # --------------------------------------------------------------------------
@@ -537,12 +542,14 @@ def test_construction_does_not_triple_peak_memory():
     import sys
 
     script = """
-import numpy as np, resource, hilbertplot as hp
+import numpy as np, resource, sys
+from hilbertplot._viz.hilbert_plot import hilbert_plot as make_plot
 n = 8_000_000
 data = np.arange(n, dtype=float)
 mib = n * 8 / 2**20
-plot = hp.hilbert_plot(0, data)
-peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+plot = make_plot(0, data)
+rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+peak = rss / (2**20 if sys.platform == "darwin" else 1024)
 assert plot.data[0] == 0.0
 print(round(peak / mib, 2))
 """
@@ -556,7 +563,7 @@ print(round(peak / mib, 2))
 
 def test_rendering_does_not_copy_the_data_at_granularity_one():
     """`_layout` runs on every render; at granularity 1 the transform is the identity."""
-    plot = hp.hilbert_plot(0, np.arange(1024.0))
+    plot = make_plot(0, np.arange(1024.0))
     values, _, _ = plot._layout(1, None, "auto")
     assert values is plot._data, "granularity 1 copied the whole vector for nothing"
     coarsened, _, _ = plot._layout(4, None, "auto")
@@ -569,7 +576,7 @@ def test_a_rejected_draw_call_leaks_no_figure():
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
 
-    plot = hp.hilbert_plot(0, np.arange(1.0, 65.0))
+    plot = make_plot(0, np.arange(1.0, 65.0))
     plt.close("all")
     for _ in range(25):
         with pytest.raises(ValueError, match="either norm= or vmin"):

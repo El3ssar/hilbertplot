@@ -43,12 +43,27 @@ with an uppercase letter (`feat: add ...`, not `feat: Add ...`).
 2. The **Release** workflow runs python-semantic-release, which:
    - computes the next version from the commits since the last tag,
    - stamps it into `pyproject.toml` and `src/hilbertplot/__init__.py`,
+   - runs `scripts/build_release.sh` to regenerate `uv.lock` with uv and build
+     the candidate distributions, then includes the lock in its release commit,
    - updates `CHANGELOG.md`, commits, tags `vX.Y.Z`, and creates a GitHub Release.
 3. If a release was cut, the **publish** job builds the sdist + wheel from the
    new tag and uploads them to [PyPI](https://pypi.org/p/hilbertplot) via Trusted
    Publishing (OIDC — no API tokens involved).
 
 You never edit the version by hand and you never publish manually.
+
+The version is determined by the squash commit/PR title. `uv.lock` is generated;
+do not edit its version entry manually. The release build hook runs after version
+stamping and before the release commit/tag. For development dependency changes,
+`uv lock` updates the generated lock against the current project metadata.
+
+CI exercises `fix:`, `feat:`, and `feat!:` releases in disposable repositories,
+checking that metadata, the source version, the committed lockfile, tags and built
+artifacts agree. This check never pushes or publishes:
+
+```bash
+uv run --no-project --with python-semantic-release==10.6.1 python scripts/check_release.py
+```
 
 ## Local development
 

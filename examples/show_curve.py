@@ -1,47 +1,29 @@
-"""Plot a single curve: `python examples/show_curve.py <curve> <order> [--save FILE]`.
-
-Examples
---------
-    python examples/show_curve.py 0 5           # Hilbert, order 5 (opens a window)
-    python examples/show_curve.py 12 4          # inhomogeneous IH12, order 4
-    python examples/show_curve.py moore 6 --save moore6.png
-    python examples/show_curve.py 9 4 --solid   # single colour instead of gradient
-"""
+"""Draw a curve: python examples/show_curve.py 12 4 --save curve.png."""
 
 import argparse
+
+import matplotlib.pyplot as plt
 
 import hilbertplot as hp
 
 
-def main() -> None:
-    p = argparse.ArgumentParser(description="Plot Hilbert curve i of order j.")
-    p.add_argument("curve", help="curve index 0-39 or name (e.g. 'hilbert', 'moore')")
-    p.add_argument("order", type=int, help="order j (recursion depth)")
-    p.add_argument("--save", metavar="FILE", help="save to FILE instead of showing")
-    p.add_argument(
-        "--mode",
-        choices=("auto", "line", "fill"),
-        default="auto",
-        help="line = polyline, fill = visit-order heatmap (default: auto)",
+def main():
+    parser = argparse.ArgumentParser(description="Draw a curve by index or label")
+    parser.add_argument("curve", nargs="?", default="0")
+    parser.add_argument("order", type=int, nargs="?", default=4)
+    parser.add_argument("--save", metavar="FILE")
+    parser.add_argument("--mode", choices=("auto", "line", "fill"), default="auto")
+    parser.add_argument("--solid", action="store_true")
+    args = parser.parse_args()
+    selector = int(args.curve) if args.curve.lstrip("-").isdigit() else args.curve
+    fig = hp.plot_curve(
+        selector, order=args.order, mode=args.mode, color="steelblue" if args.solid else None
     )
-    p.add_argument("--solid", action="store_true", help="solid colour, no gradient")
-    args = p.parse_args()
-
-    which = int(args.curve) if args.curve.lstrip("-").isdigit() else args.curve
-    c = hp.curve(which)
-    style = {"mode": args.mode}
-    if args.solid:
-        style["color"] = "steelblue"
-
-    print(
-        f"{c.symbol}  {c.name}  |  {c.kind}  |  kernels={c.combination}  |  {4**args.order} cells"
-    )
-
     if args.save:
-        c.save(args.save, args.order, **style)
-        print(f"saved -> {args.save}")
+        fig.savefig(args.save, dpi=160)
+        plt.close(fig)
     else:
-        c.show(args.order, **style)
+        plt.show()
 
 
 if __name__ == "__main__":

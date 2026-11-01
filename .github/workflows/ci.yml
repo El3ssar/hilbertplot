@@ -76,14 +76,13 @@ jobs:
         run: |
           uv run python -c "
           import numpy as np, hilbertplot as hp
-          c = hp.curve(0)
-          assert c.points(4).shape == (256, 2)
-          assert c.grid(10).shape == (100, 2)
-          assert c.encode(5, 2) == (0, 3)
-          assert hp.hilbert_plot(0, np.arange(100)).image().shape == (10, 10)
-          assert hp.hilbert_plot(0, np.arange(100)).fourier().shape == (10, 10)
-          assert c.unroll(np.zeros((8, 8))).shape == (64,)
-          assert c.difference_map(3).shape == (8, 8)
+          assert hp.curves.points(0, 4).shape == (256, 2)
+          assert hp.curves.grid(10).shape == (100, 2)
+          assert hp.curves.index_to_xy(5, 2) == (0, 3)
+          assert hp.data.to_grid(np.arange(100), fit='square').shape == (10, 10)
+          assert hp.data.fourier(np.arange(100), fit='square').shape == (10, 10)
+          assert hp.data.from_grid(np.zeros((8, 8))).shape == (64,)
+          assert hp.curves.difference_map(order=3).shape == (8, 8)
           print('numpy-only path OK')
           "
 
@@ -159,7 +158,7 @@ jobs:
           VIRTUAL_ENV=/tmp/wheeltest uv run --no-project python -c "
           import hilbertplot, importlib.metadata as md
           print('installed', hilbertplot.__version__, 'exports', len(hilbertplot.__all__), 'names')
-          assert hilbertplot.curve('Moore').points(3).shape == (64, 2)
+          assert hilbertplot.curves.points('Moore', 3).shape == (64, 2)
           # __version__ and the distribution version are two literals kept in sync only by
           # python-semantic-release stamping both; this is what catches them drifting.
           assert hilbertplot.__version__ == md.version('hilbertplot'), (
@@ -205,6 +204,21 @@ jobs:
 
       - name: Run the suite against them
         run: uv run --no-project pytest -q
+
+  release-check:
+    name: Semantic versions and lockfile stay in sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Verify patch, minor and breaking releases without pushing
+        run: >-
+          uv run --no-project --with python-semantic-release==10.6.1
+          python scripts/check_release.py
 
   lint:
     name: Lint

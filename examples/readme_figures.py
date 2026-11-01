@@ -5,7 +5,7 @@
 Writes to assets/:
 * curve.png            -- curve 0 at order 4, drawn as a colour-graded path
 * data_two_curves.png  -- the numbers 1-256 laid on curve 0 and on curve 32
-* difference.png       -- the difference-map overlay at two thresholds
+* difference.png       -- data alongside the full difference map
 * thue_morse.png       -- a Thue-Morse sequence and its 2-D Fourier map
 * granularity.png      -- periodic regions that only appear once coarse-grained
 """
@@ -61,44 +61,36 @@ def main() -> None:
 
     # 1) the curve itself, colour-graded along the traversal
     fig, ax = plt.subplots(figsize=(5.2, 5.2))
-    hp.curve(0).draw(4, ax=ax, cmap="viridis", title="The Hilbert curve (curve 0), order 4")
+    hp.plot_curve(0, order=4, ax=ax, cmap="viridis", title="The Hilbert curve (curve 0), order 4")
     save(fig, "curve.png")
 
     # 2) the same data laid on two different curves
     data = np.arange(1, 257)
     fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.9))
-    hp.hilbert_plot(0, data).draw("viridis", ax=axes[0], title="curve 0 — Hilbert")
-    hp.hilbert_plot(32, data).draw("viridis", ax=axes[1], title="curve 32 — Moore+Liu4 #1")
+    hp.plot(data, curve=0, cmap="viridis", colorbar=False, ax=axes[0], title="curve 0 — Hilbert")
+    hp.plot(
+        data, curve=32, cmap="viridis", colorbar=False, ax=axes[1], title="curve 32 — Moore+Liu4 #1"
+    )
     fig.suptitle("The same data (1–256) laid on two different curves", fontsize=13, y=1.02)
     save(fig, "data_two_curves.png")
 
-    # 3) where the curve breaks locality, at two thresholds
-    plot = hp.hilbert_plot(0, np.arange(4**5))
-    fig, axes = plt.subplots(1, 3, figsize=(12.6, 4.6))
-    plot.draw("gray", ax=axes[0], title="Hilbert plot")
-    for ax, thr in ((axes[1], 1.5), (axes[2], 0.5)):
-        plot.draw(
-            "gray",
-            ax=ax,
-            difference=True,
-            difference_threshold=thr,
-            difference_color="#ff3b30",
-            title=f"difference map (threshold {thr})",
-        )
-    fig.suptitle(
-        "Where the curve breaks locality — a higher threshold marks fewer, worse sites",
-        fontsize=13,
-        y=1.02,
-    )
+    # 3) data and the full geometric difference field, drawn separately
+    data = np.arange(4**5)
+    fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.9))
+    hp.plot(data, cmap="gray", ax=axes[0], colorbar=False, title="Hilbert plot")
+    hp.plot(data, difference=True, ax=axes[1], colorbar=False, title="Difference map")
+    fig.suptitle("Where spatial neighbours are distant along the curve", fontsize=13)
     save(fig, "difference.png")
 
     # 4) a Thue-Morse sequence and its Fourier map (paper-style: light ground)
-    plot = hp.hilbert_plot(0, thue_morse(4**8))
+    data = thue_morse(4**8)
     fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.9))
-    plot.draw("gray", ax=axes[0], title="Thue–Morse sequence")
-    lo, hi = np.percentile(plot.fourier(window=True), [2.0, 99.5])
-    plot.draw(
-        "gray_r",
+    hp.plot(data, cmap="gray", colorbar=False, ax=axes[0], title="Thue–Morse sequence")
+    lo, hi = np.percentile(hp.data.fourier(data, window=True), [2.0, 99.5])
+    hp.plot(
+        data,
+        cmap="gray_r",
+        colorbar=False,
         ax=axes[1],
         fourier=True,
         window=True,
@@ -110,10 +102,17 @@ def main() -> None:
     save(fig, "thue_morse.png")
 
     # 5) periodic regions that only show up once you coarse-grain
-    plot = hp.hilbert_plot(0, interleaved_periodic(4**7))
+    data = interleaved_periodic(4**7)
     fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.9))
-    plot.draw("gray", ax=axes[0], title="faithful — featureless noise")
-    plot.draw("gray", ax=axes[1], granularity=4, title="granularity 4 — regions appear")
+    hp.plot(data, cmap="gray", colorbar=False, ax=axes[0], title="faithful — featureless noise")
+    hp.plot(
+        data,
+        cmap="gray",
+        colorbar=False,
+        ax=axes[1],
+        granularity=4,
+        title="granularity 4 — regions appear",
+    )
     fig.suptitle(
         "Periodic regions hidden in a binary sequence, exposed by coarse-graining",
         fontsize=13,

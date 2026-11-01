@@ -138,7 +138,7 @@ def square_valid(index, swap, sizes=range(1, 14), check_2k=True):
     if check_2k:
         for k in (1, 2, 3):
             a = canonical_form(np.array(fill(index, 0, 0, 2**k, 2**k, IDENT, False, swap)))
-            if a != canonical_form(hilbertplot.curve(index).points(k)):
+            if a != canonical_form(hilbertplot.curves.points(index, k)):
                 return False
     return True
 
@@ -168,7 +168,7 @@ def endpoint_type(cell, side):
 
 def entry_exit(index, order=5):
     """(entry_type, exit_type) of curve `index` on its 2^order grid: corner/edge/interior."""
-    pts = hilbertplot.curve(index).points(order)
+    pts = hilbertplot.curves.points(index, order)
     side = 2**order
     return endpoint_type(pts[0], side), endpoint_type(pts[-1], side)
 

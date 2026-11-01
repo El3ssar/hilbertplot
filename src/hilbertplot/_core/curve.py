@@ -1,6 +1,6 @@
-"""The public :class:`Curve` object, the :class:`CurveList` container, and lookups.
+"""Internal curve handles, curve lists, and lookups used by the function-based API.
 
-Everything a user touches starts here.  A :class:`Curve` is a light, hashable handle
+The public functions delegate here. A :class:`Curve` is a light, hashable handle
 onto one of the forty curves; :func:`curve` fetches one and the group functions
 (:func:`catalog`, :func:`homogeneous`, ...) return a :class:`CurveList` that prints as a
 tidy table.
@@ -104,8 +104,8 @@ class Curve:
 
     Examples
     --------
-    >>> import hilbertplot
-    >>> c = hilbertplot.curve("Moore")
+    >>> from hilbertplot._core import curve as curves
+    >>> c = curves.curve("Moore")
     >>> c.name
     'Moore'
     >>> c.word(2)
@@ -119,8 +119,8 @@ class Curve:
     def __init__(self, spec: CurveSpec) -> None:
         if not isinstance(spec, CurveSpec):
             raise TypeError(
-                f"Curve() takes a CurveSpec, got {type(spec).__name__}; use "
-                f"hilbertplot.curve({spec!r}) to look a curve up by index, name or symbol."
+                f"Curve() takes a CurveSpec, got {type(spec).__name__}; "
+                "Curve is internal; use the private curve() factory for internal lookups."
             )
         self._spec = spec
 
@@ -160,7 +160,8 @@ class Curve:
         """bool: ``True`` if the curve tiles an arbitrary ``n x n`` square (see :meth:`grid`).
 
         Only eight of the forty curves do (proved in ``research/quasisquares/``); the rest
-        exist only on ``2**k`` grids.  Use :func:`hilbertplot.generalizing` for the whole group.
+        exist only on ``2**k`` grids. Use :func:`hilbertplot.curves.generalizing`
+        for the whole group.
         """
         from .arbitrary import FEASIBLE
 
@@ -198,8 +199,8 @@ class Curve:
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> hilbertplot.curve(0).word(2)
+        >>> from hilbertplot._core import curve as curves
+        >>> curves.curve(0).word(2)
         'ruluurdrurddldr'
         """
         return curve_word(self._spec.index, order)
@@ -221,8 +222,8 @@ class Curve:
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> hilbertplot.curve(0).points(1).tolist()
+        >>> from hilbertplot._core import curve as curves
+        >>> curves.curve(0).points(1).tolist()
         [[0, 0], [0, 1], [1, 1], [1, 0]]
         """
         from .generation import curve_codes
@@ -252,14 +253,14 @@ class Curve:
         ValueError
             If this curve does not generalize to arbitrary squares
             (:attr:`generalizes` is ``False``), ``n < 1``, or the square would exceed
-            :func:`hilbertplot.cell_limit`.
+            :func:`hilbertplot.config.cell_limit`.
         TypeError
             If ``n`` is not an integer.
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> hilbertplot.curve(0).grid(100).shape
+        >>> from hilbertplot._core import curve as curves
+        >>> curves.curve(0).grid(100).shape
         (10000, 2)
         """
         from .arbitrary import FEASIBLE, SMALLEST_FAILURE, square_points
@@ -275,7 +276,7 @@ class Curve:
             raise ValueError(
                 f"{self.name} does not tile arbitrary squares (the construction already "
                 f"breaks at n={SMALLEST_FAILURE[idx]}); use points(order) for a 2**order "
-                f"grid, or pick a curve from hilbertplot.generalizing()."
+                f"grid, or pick a curve from hilbertplot.curves.generalizing()."
             )
         check_cells(n * n, f"a {n}x{n} square")
         return square_points(idx, n)
@@ -305,10 +306,10 @@ class Curve:
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> hilbertplot.curve(0).encode(5, 2)
+        >>> from hilbertplot._core import curve as curves
+        >>> curves.curve(0).encode(5, 2)
         (0, 3)
-        >>> hilbertplot.curve(0).encode(10**18, 40)     # 2**80 cells: unbuildable
+        >>> curves.curve(0).encode(10**18, 40)     # 2**80 cells: unbuildable
         (751054336, 346100736)
         """
         from .indexing import encode
@@ -342,8 +343,8 @@ class Curve:
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> hilbertplot.curve(0).decode(0, 3, 2)
+        >>> from hilbertplot._core import curve as curves
+        >>> curves.curve(0).decode(0, 3, 2)
         5
         """
         from .indexing import decode
@@ -373,8 +374,8 @@ class Curve:
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> hilbertplot.curve(0).label_map(1).tolist()
+        >>> from hilbertplot._core import curve as curves
+        >>> curves.curve(0).label_map(1).tolist()
         [[0, 3], [1, 2]]
         """
         from .._data.mapping import label_map
@@ -384,14 +385,13 @@ class Curve:
     def unroll(self, array) -> np.ndarray:
         """Read a 2-D array along this curve's path, returning a 1-D vector.
 
-        The inverse of laying data onto the plane (:func:`hilbertplot.hilbert_plot`): it walks
+        The inverse of laying data onto the plane: it walks
         the curve over a square array and reads the values in visit order, so neighbouring
         entries of the result are neighbours along the curve.
 
         The array side may be **any** integer when the curve :attr:`generalizes`
         (arbitrary squares via :meth:`grid`); otherwise it must be a power of two.  At
-        ``2**k`` the two paths coincide, so a round trip with :func:`hilbertplot.hilbert_plot`
-        is exact either way.
+        ``2**k`` the two paths coincide, so the data mapping round trip is exact either way.
 
         Parameters
         ----------
@@ -412,9 +412,10 @@ class Curve:
         Examples
         --------
         >>> import numpy as np, hilbertplot
+        >>> from hilbertplot._core import curve as curves
         >>> data = np.arange(100)                         # not a power of four
-        >>> img = hilbertplot.hilbert_plot(0, data).image()     # 10x10 (Hilbert generalizes)
-        >>> np.array_equal(hilbertplot.curve(0).unroll(img), data)   # ...and read it back
+        >>> img = hilbertplot.data.to_grid(data, fit="square")     # 10x10 (Hilbert generalizes)
+        >>> np.array_equal(curves.curve(0).unroll(img), data)   # ...and read it back
         True
         """
         from .._data.mapping import gather
@@ -433,7 +434,7 @@ class Curve:
         else:
             raise ValueError(
                 f"array side {side} is not a power of two, and {self.name} does not "
-                f"generalize to arbitrary squares (see hilbertplot.generalizing())"
+                f"generalize to arbitrary squares (see hilbertplot.curves.generalizing())"
             )
         return gather(points, array)
 
@@ -459,13 +460,12 @@ class Curve:
 
         See Also
         --------
-        HilbertPlot.show : overlay the strong-locality barrier on a data plot with
-            ``difference=True``.
+        HilbertPlot.draw : render the full difference map with ``difference=True``.
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> hilbertplot.curve(0).difference_map(3).shape
+        >>> from hilbertplot._core import curve as curves
+        >>> curves.curve(0).difference_map(3).shape
         (8, 8)
         """
         from .._data.mapping import difference_map
@@ -490,8 +490,8 @@ class Curve:
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> plot = hilbertplot.curve(0).plot_data(range(1024))
+        >>> from hilbertplot._core import curve as curves
+        >>> plot = curves.curve(0).plot_data(range(1024))
         >>> plot.show(["red", "green", "tab:blue"])   # doctest: +SKIP
         """
         from .._viz.hilbert_plot import HilbertPlot
@@ -532,9 +532,9 @@ class Curve:
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> ax = hilbertplot.curve(0).draw(4)                        # doctest: +SKIP
-        >>> ax = hilbertplot.curve("Moore").draw(8, mode="fill")     # doctest: +SKIP
+        >>> from hilbertplot._core import curve as curves
+        >>> ax = curves.curve(0).draw(4)                        # doctest: +SKIP
+        >>> ax = curves.curve("Moore").draw(8, mode="fill")     # doctest: +SKIP
         """
         from .._viz.render import draw
 
@@ -581,8 +581,8 @@ class Curve:
 
         Examples
         --------
-        >>> import hilbertplot
-        >>> hilbertplot.curve(0).save("hilbert.png", 6)       # doctest: +SKIP
+        >>> from hilbertplot._core import curve as curves
+        >>> curves.curve(0).save("hilbert.png", 6)       # doctest: +SKIP
         'hilbert.png'
         """
         from .._viz.render import save_figure
@@ -634,7 +634,7 @@ class Curve:
         return self._spec.name
 
     def _repr_png_(self) -> bytes | None:
-        """Render inline in Jupyter, so ``hilbertplot.curve(0)`` in a cell shows the curve.
+        """Render inline in Jupyter, so ``hilbertplot.curves.info(0)`` in a cell shows the curve.
 
         Returns ``None`` when matplotlib is not installed, which makes the notebook fall
         back to :meth:`__repr__` instead of raising -- matplotlib is an optional extra.
@@ -658,8 +658,8 @@ class CurveList(list):
 
     Examples
     --------
-    >>> import hilbertplot
-    >>> print(hilbertplot.proper())          # doctest: +NORMALIZE_WHITESPACE
+    >>> from hilbertplot._core import curve as curves
+    >>> print(curves.proper())          # doctest: +NORMALIZE_WHITESPACE
     #  name     kind    closed
     -  -------  ------  ------
     0  Hilbert  proper
@@ -668,9 +668,9 @@ class CurveList(list):
     3  Liu2     proper
     4  Liu3     proper
     5  Liu4     proper
-    >>> hilbertplot.proper()[:2].names
+    >>> curves.proper()[:2].names
     ['Hilbert', 'Moore']
-    >>> hilbertplot.catalog().closed().names
+    >>> curves.catalog().closed().names
     ['Moore', 'Liu1', 'Improper1', 'Improper4']
     """
 
@@ -786,12 +786,12 @@ def curve(which: int | str | Curve) -> Curve:
 
     Examples
     --------
-    >>> import hilbertplot
-    >>> hilbertplot.curve(0).name
+    >>> from hilbertplot._core import curve as curves
+    >>> curves.curve(0).name
     'Hilbert'
-    >>> hilbertplot.curve("moore").index
+    >>> curves.curve("moore").index
     1
-    >>> hilbertplot.curve(hilbertplot.curve(7)).index      # idempotent
+    >>> curves.curve(curves.curve(7)).index      # idempotent
     7
     """
     if isinstance(which, Curve):
@@ -804,7 +804,7 @@ def curve(which: int | str | Curve) -> Curve:
             hint = (
                 f"did you mean one of {', '.join(repr(n) for n in close)}?"
                 if close
-                else "see hilbertplot.catalog() for the forty names, or use an index 0..39"
+                else "see hilbertplot.curves.catalog() for the forty names, or use an index 0..39"
             )
             raise KeyError(f"no curve named {which!r}; {hint}") from None
     index = _check_int(which, "curve index")
@@ -822,8 +822,8 @@ def catalog() -> CurveList:
 
     Examples
     --------
-    >>> import hilbertplot
-    >>> len(hilbertplot.catalog())
+    >>> from hilbertplot._core import curve as curves
+    >>> len(curves.catalog())
     40
     """
     return CurveList(_CATALOG)
@@ -907,8 +907,8 @@ def by_kernels(*indices: int) -> CurveList:
 
     Examples
     --------
-    >>> import hilbertplot
-    >>> [c.index for c in hilbertplot.by_kernels(3, 5)]
+    >>> from hilbertplot._core import curve as curves
+    >>> [c.index for c in curves.by_kernels(3, 5)]
     [12, 13, 14, 15, 16, 17]
     """
     target = frozenset(indices)

@@ -7,6 +7,42 @@ All notable changes to **hilbertplot** are documented here. The format follows
 Released versions below are generated automatically by python-semantic-release;
 new entries are inserted at the marker.
 
+## Local API redesign (unreleased)
+
+- Make array conversion lossless for dtypes, large integers, complex values and
+  masks; keep padding masked where NaN would require lossy integer conversion.
+- Convert supported square and quasisquare arrays to flat 1-D sequences,
+  retaining RGB/RGBA channel order; restore with `to_grid(..., shape=original.shape)`.
+  Reject general rectangles and unsupported curve/shape combinations without a
+  fallback. Add explicit `from_grid(..., length=...)` prefix handling.
+- Run the release build hook after semantic version stamping to regenerate and
+  commit `uv.lock` automatically. Verify title-driven patch/minor/breaking releases
+  in disposable repositories in CI; versions remain semantic-release-owned.
+- Allow `plot_curve(..., shape=(rows, columns))` to draw supported arbitrary
+  squares and quasisquares directly as lines. Select a connected quasisquare
+  orientation internally. `curves.grid` also accepts the same shape pair.
+- Use `hp.data.to_grid` / `from_grid` and `hp.curves.index_to_xy` /
+  `xy_to_index` for explicit mapping directions. Remove the former `image`,
+  `unroll`, `encode`, and `decode` aliases from these namespaces.
+- Keep top-level completion to `plot`, `plot_curve`, `gallery`, `curves`, `data`,
+  and `config`. Move metadata/geometry, array operations, and resource controls
+  into their respective module namespaces; remove their top-level aliases.
+- Add `examples/try_api.py` to exercise the complete function-based interface.
+- Add data-first `plot(data, curve=...)` and `plot_curve(curve, order=...)`.
+  Each call returns a standard Matplotlib Figure, without opening a window.
+- Keep `fourier=False` and `difference=False` as mutually exclusive flags on
+  `plot`; difference mode displays the full geometric field instead of a threshold overlay.
+- Keep custom classes internal. Remove the `Curve`, `CurveList`, `HilbertPlot`,
+  and `hilbert_plot` exports. Curve metadata and groups return plain dicts/lists.
+- Expose array, coordinate, and indexing operations as functions; retain the
+  numpy-only computational path. See the README migration table for replacements.
+- Default new data functions to power-of-two padding; require explicit truncation
+  when an order is too small. Reject ambiguous multidimensional/complex input,
+  handle masked integer data, and report invalid Fourier inputs without warnings.
+- Normalize the memory regression test's RSS units on macOS as well as Linux.
+
+These changes are under local review and have not been released.
+
 ## Migrating from 0.1.0
 
 `hilbertplot` is on `0.x`, where [semver §4](https://semver.org/#spec-item-4) allows the

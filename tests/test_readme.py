@@ -38,11 +38,14 @@ def test_readme_has_python_examples(readme_text: str):
     assert len(_python_blocks(readme_text)) >= 3
 
 
-def test_every_readme_python_block_runs(readme_text: str, monkeypatch: pytest.MonkeyPatch):
+def test_every_readme_python_block_runs(
+    readme_text: str, monkeypatch: pytest.MonkeyPatch, tmp_path
+):
     import matplotlib.pyplot as plt
 
     # The README legitimately calls .show(); make it a no-op that also frees the figure.
     monkeypatch.setattr(plt, "show", lambda *a, **k: None)
+    monkeypatch.chdir(tmp_path)
     shared: dict[str, object] = {}
     for number, block in enumerate(_python_blocks(readme_text), start=1):
         _run_block(block, number, shared)

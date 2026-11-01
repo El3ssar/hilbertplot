@@ -142,7 +142,7 @@ def granulate(data, granularity: int) -> np.ndarray:
     Examples
     --------
     >>> import hilbertplot
-    >>> hilbertplot.granulate([0, 2, 10, 0], 2).tolist()
+    >>> hilbertplot.data.granulate([0, 2, 10, 0], 2).tolist()
     [1.0, 1.0, 5.0, 5.0]
     """
     granularity = check_granularity(granularity)
@@ -215,7 +215,7 @@ def gather(points: np.ndarray, array: np.ndarray) -> np.ndarray:
 def fourier_spectrum(
     image: np.ndarray, *, log: bool = True, window: bool = False, remove_dc: bool = True
 ) -> np.ndarray:
-    """Return the centred 2-D power spectrum of a Hilbert-plot image.
+    """Return the centred 2-D FFT magnitude of a Hilbert-plot image.
 
     The magnitude of the (fft-shifted) 2-D Fourier transform: hidden periodicities and
     symmetries in the data show up as bright peaks and structured patterns, exactly the
@@ -242,6 +242,10 @@ def fourier_spectrum(
         A real ``image.shape`` array, the centred spectrum (indexed ``[y, x]``).
     """
     img = np.asarray(image, dtype=float)
+    if np.isinf(img).any():
+        raise ValueError("Fourier map requires finite values or NaN for missing cells")
+    if not np.isfinite(img).any():
+        raise ValueError("Fourier map needs at least one finite value")
     if np.isnan(img).any():
         img = np.where(np.isnan(img), np.nanmean(img), img)
     if remove_dc:

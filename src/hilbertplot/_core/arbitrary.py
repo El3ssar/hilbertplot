@@ -7,8 +7,8 @@ connected space-filling path (the rest are provably obstructed -- see
 quadrant rules and the full dihedral group ``D4``, with a per-curve *swap rule* that
 keeps the path connected at odd sizes.
 
-Public surface is the :meth:`hilbertplot.Curve.grid` method and the
-:func:`hilbertplot.generalizing` group; this module is the engine behind them.
+Public surface is the :meth:`hilbertplot._core.curve.Curve.grid` method and the
+:func:`hilbertplot.curves.generalizing` group; this module is the engine behind them.
 ``grid(2**k)`` reproduces the standard ``points(k)`` curve exactly for all eight, so the
 two are interchangeable.
 
@@ -80,7 +80,7 @@ _SWAP: dict[int, tuple[str, str]] = {
 _DEFAULT_SWAP: tuple[str, str] = ("first", "first")
 
 #: For each infeasible curve, the **smallest** square side at which the construction
-#: actually breaks -- the number :meth:`hilbertplot.Curve.grid` quotes when it refuses.
+#: actually breaks -- the number :meth:`hilbertplot._core.curve.Curve.grid` quotes when it refuses.
 #:
 #: Every entry is verified by ``tests/test_arbitrary.py`` to be exactly the smallest ``n``
 #: for which the path is not Hamiltonian, so the error message cannot drift into a
@@ -330,3 +330,49 @@ def square_points(index: int, n: int) -> np.ndarray:
     out = np.empty((n * n, 2), dtype=np.int64)
     _emit(index, 0, 0, n, n, _IDENTITY, False, out, [0], {})
     return out
+
+
+def check_shape(shape) -> tuple[int, int]:
+    """Validate an explicit (rows, columns) square or quasisquare shape."""
+    if not isinstance(shape, (tuple, list)) or len(shape) != 2:
+        raise TypeError("shape must be a (rows, columns) pair of positive integers")
+    if any(isinstance(n, bool) or not isinstance(n, (int, np.integer)) for n in shape):
+        raise TypeError("shape must contain positive integers")
+    rows, columns = map(int, shape)
+    if rows < 1 or columns < 1:
+        raise ValueError("shape dimensions must be >= 1")
+    if abs(rows - columns) > 1:
+        raise ValueError("shape must be a square or quasisquare (sides differ by at most one)")
+    return rows, columns
+
+
+def shape_points(index: int, shape) -> np.ndarray:
+    """Build a square or quasisquare path, selecting a connected top orientation.
+
+    Power-of-two squares retain the exact standard traversal for all forty curves.
+    Other shapes require a feasible curve. A quasisquare's top orientation depends
+    on its dimensions and curve: try D4 orientations in fixed order and retain the
+    first connected path. Recursive partitioning already covers every cell once;
+    the additional check verifies every junction between successive cells.
+    """
+    from .generation import curve_codes
+    from .geometry import codes_to_points
+    from .limits import check_cells
+
+    rows, columns = check_shape(shape)
+    check_cells(rows * columns, f"a {rows}x{columns} grid")
+    if rows == columns and rows & (rows - 1) == 0:
+        return codes_to_points(curve_codes(index, rows.bit_length() - 1))
+    if index not in FEASIBLE:
+        raise ValueError(
+            f"curve {index} supports power-of-two squares only; this shape needs "
+            "one of curves 0, 3, 4, 5, 24, 29, 30, or 31"
+        )
+    if rows == columns:
+        return square_points(index, rows)
+    out = np.empty((rows * columns, 2), dtype=np.int64)
+    for matrix in dict.fromkeys(_MATRICES.values()):
+        _emit(index, 0, 0, columns, rows, matrix, False, out, [0], {})
+        if (np.abs(np.diff(out, axis=0)).sum(axis=1) == 1).all():
+            return out
+    raise ValueError(f"curve {index} has no connected path for shape {(rows, columns)}")

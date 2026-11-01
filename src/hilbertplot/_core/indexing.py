@@ -1,6 +1,6 @@
 """Single-cell index <-> coordinate conversion, without building the whole curve.
 
-:meth:`hilbertplot.Curve.points` materialises all ``4**order`` cells, which is the right
+:meth:`hilbertplot._core.curve.Curve.points` materialises all ``4**order`` cells, which is the right
 thing when you want the whole path but hopeless when you only want to know *where step
 i lands* -- at order 30 the path has 10^18 cells and cannot be built at all.
 
@@ -12,7 +12,7 @@ curves, working straight off the catalog's quadrant rules:
 
 They are exact inverses of each other and agree with ``points(order)`` cell for cell.
 Because they are pure Python integer arithmetic they work at any order the machine can
-hold coordinates for, far beyond what :meth:`~hilbertplot.Curve.points` can materialise.
+hold coordinates for, far beyond what :meth:`~hilbertplot._core.curve.Curve.points` can materialise.
 
 How it works
 ------------

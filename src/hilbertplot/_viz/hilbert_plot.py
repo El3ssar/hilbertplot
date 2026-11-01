@@ -1,7 +1,7 @@
 """The :class:`HilbertPlot` object -- data laid on a curve, rendered on demand.
 
 A :class:`HilbertPlot` just holds a curve and a data vector; it draws nothing until
-you ask.  Get one from :meth:`hilbertplot.Curve.plot_data` or the
+you ask.  Get one from :meth:`hilbertplot._core.curve.Curve.plot_data` or the
 :func:`hilbert_plot` shortcut, then render with :meth:`HilbertPlot.show` /
 :meth:`~HilbertPlot.save` / :meth:`~HilbertPlot.draw`, choosing the colormap,
 granularity and power-of-four fit at that point (not at construction).
@@ -69,7 +69,7 @@ def _resolve_cmap(cmap):
 _DRAW_PARAMETERS = frozenset(
     {
         "cmap", "granularity", "order", "fit", "fill", "ax", "vmin", "vmax", "title",
-        "difference", "difference_threshold", "difference_color", "fourier", "window",
+        "difference", "fourier", "window",
         "log", "remove_dc", "colorbar",
     }
 )  # fmt: skip
@@ -115,24 +115,13 @@ def _reject_unknown_kwargs(imshow_kw: dict) -> None:
             )
 
 
-def _overlay_difference(ax, dmap, side, threshold, color):
-    """Paint the strong-locality barrier of a difference map onto ``ax``.
-
-    The barrier is the set of cells whose value exceeds ``mean + threshold * std``;
-    all other cells stay transparent.
-    """
-    from matplotlib.colors import to_rgba
-
-    barrier = dmap > dmap.mean() + threshold * dmap.std()
-    overlay = np.zeros((side, side, 4))
-    overlay[barrier] = to_rgba(color)
-    ax.imshow(
-        overlay,
-        origin="lower",
-        interpolation="nearest",
-        extent=(-0.5, side - 0.5, -0.5, side - 0.5),
-        zorder=2,
-    )
+def _check_transforms(fourier, difference):
+    """Select at most one transformation; boolean flags also accept integer 0/1."""
+    for name, value in (("fourier", fourier), ("difference", difference)):
+        if not isinstance(value, (bool, np.bool_, int, np.integer)) or value not in (0, 1):
+            raise TypeError(f"{name} must be a boolean (False/True or 0/1)")
+    if fourier and difference:
+        raise ValueError("fourier and difference are mutually exclusive; choose only one")
 
 
 class HilbertPlot:
@@ -140,7 +129,7 @@ class HilbertPlot:
 
     Holds only the curve and the data and draws nothing on construction; the colormap,
     granularity and power-of-four fit are all chosen at render time, so one object gives
-    you every variant.  Construct via :meth:`hilbertplot.Curve.plot_data` or
+    you every variant.  Construct via :meth:`hilbertplot._core.curve.Curve.plot_data` or
     :func:`hilbert_plot`.
 
     Parameters
@@ -152,8 +141,8 @@ class HilbertPlot:
 
     Examples
     --------
-    >>> import numpy as np, hilbertplot
-    >>> plot = hilbertplot.hilbert_plot(0, np.arange(1, 101))
+    >>> import numpy as np; from hilbertplot._viz.hilbert_plot import hilbert_plot
+    >>> plot = hilbert_plot(0, np.arange(1, 101))
     >>> plot.show(["red", "green", "tab:blue"])   # doctest: +SKIP
     >>> plot.image().shape          # 100 values -> tight 10x10 square (Hilbert generalizes)
     (10, 10)
@@ -224,7 +213,7 @@ class HilbertPlot:
             Force a ``2**order`` grid (implies a power-of-two fit).
         fit : {"auto", "square", "pad", "truncate"}, default "auto"
             How to size the grid.  ``"auto"`` uses ``"square"`` when the curve
-            :attr:`~hilbertplot.Curve.generalizes` (a tight ``ceil(sqrt(N))`` square, no
+            :attr:`~hilbertplot._core.curve.Curve.generalizes` (a tight ``ceil(sqrt(N))`` square, no
             power-of-two waste) and ``"pad"`` otherwise.  ``"square"`` forces the tight
             square (only for generalizing curves).  ``"pad"`` uses the smallest enclosing
             ``2**k`` grid; ``"truncate"`` the largest ``2**k`` grid that fits inside the
@@ -239,10 +228,10 @@ class HilbertPlot:
 
         Examples
         --------
-        >>> import numpy as np, hilbertplot
-        >>> hilbertplot.hilbert_plot(0, np.arange(10000)).image().shape   # tight square
+        >>> import numpy as np; from hilbertplot._viz.hilbert_plot import hilbert_plot
+        >>> hilbert_plot(0, np.arange(10000)).image().shape   # tight square
         (100, 100)
-        >>> hilbertplot.hilbert_plot(0, np.arange(64)).image(order=3).shape
+        >>> hilbert_plot(0, np.arange(64)).image(order=3).shape
         (8, 8)
         """
         values, points, side = self._layout(granularity, order, fit)
@@ -258,7 +247,7 @@ class HilbertPlot:
         window: bool = False,
         remove_dc: bool = True,
     ) -> np.ndarray:
-        """Return the 2-D Fourier map of this plot -- the centred power spectrum of the image.
+        """Return the 2-D Fourier map -- the centred FFT magnitude of the image.
 
         Periodic and self-similar structure in the data appears as bright peaks and
         symmetric patterns (the "Fourier map" of Estevez-Rams et al., 2015).
@@ -282,8 +271,8 @@ class HilbertPlot:
 
         Examples
         --------
-        >>> import numpy as np, hilbertplot
-        >>> spec = hilbertplot.hilbert_plot(0, np.tile([1, 0], 512)).fourier()   # ·10· pattern
+        >>> import numpy as np; from hilbertplot._viz.hilbert_plot import hilbert_plot
+        >>> spec = hilbert_plot(0, np.tile([1, 0], 512)).fourier()   # ·10· pattern
         >>> spec.shape
         (32, 32)
         """
@@ -297,10 +286,10 @@ class HilbertPlot:
     ) -> np.ndarray:
         """Return the locality-loss field for **this plot's own grid**.
 
-        :meth:`hilbertplot.Curve.difference_map` takes an order, so it can only describe a
-        ``2**k`` grid.  This one uses whatever grid the plot actually renders on -- including
+        The curve-level difference map takes an order, so it describes a ``2**k`` grid.
+        This one uses whatever grid the plot actually renders on -- including
         the tight ``ceil(sqrt(N))`` square that ``fit="auto"`` picks for a generalizing
-        curve -- so it matches the overlay ``draw(difference=True)`` paints.
+        curve -- so it matches the field ``draw(difference=True)`` renders.
 
         Parameters
         ----------
@@ -314,8 +303,8 @@ class HilbertPlot:
 
         Examples
         --------
-        >>> import numpy as np, hilbertplot
-        >>> hilbertplot.hilbert_plot(0, np.arange(100)).difference_map().shape
+        >>> import numpy as np; from hilbertplot._viz.hilbert_plot import hilbert_plot
+        >>> hilbert_plot(0, np.arange(100)).difference_map().shape
         (10, 10)
         """
         from .._data.mapping import difference_map
@@ -338,8 +327,8 @@ class HilbertPlot:
 
         Examples
         --------
-        >>> import numpy as np, hilbertplot
-        >>> hilbertplot.hilbert_plot(0, np.arange(100)).label_map().shape
+        >>> import numpy as np; from hilbertplot._viz.hilbert_plot import hilbert_plot
+        >>> hilbert_plot(0, np.arange(100)).label_map().shape
         (10, 10)
         """
         from .._data.mapping import label_map
@@ -368,7 +357,7 @@ class HilbertPlot:
             if not self._curve.generalizes:
                 raise ValueError(
                     f"fit='square' needs a generalizing curve; {self._curve.name} is not "
-                    f"one (see hilbertplot.generalizing()). Use fit='pad' or 'truncate'."
+                    f"one (see hilbertplot.curves.generalizing()). Use fit='pad' or 'truncate'."
                 )
             side = square_side(n)
             return values, self._curve.grid(side), side
@@ -390,8 +379,6 @@ class HilbertPlot:
         vmax=None,
         title: str | None = None,
         difference: bool = False,
-        difference_threshold: float = 1.0,
-        difference_color="#2b6cff",
         fourier: bool = False,
         window: bool = False,
         log: bool = True,
@@ -416,27 +403,18 @@ class HilbertPlot:
         title : str, optional
             Axes title; a default naming the curve and grid size is used when ``None``.
         difference : bool, default False
-            Overlay the curve's strong-locality barrier -- the cells of the difference
-            map above ``mean + difference_threshold * std`` -- marking where the curve
-            breaks locality (see :meth:`hilbertplot.Curve.difference_map`).
-        difference_threshold : float, default 1.0
-            Std multiplier for the barrier: **higher marks fewer, worse sites**; lower
-            marks more.
-        difference_color : color, default "#2b6cff"
-            Colour of the barrier overlay.
+            Render the full locality-loss field instead of the data. This describes
+            geometry, independently of measurement values. Cannot be combined with fourier.
         fourier : bool, default False
-            Render the **2-D Fourier map** (centred power spectrum) instead of the data
-            image, revealing periodic/self-similar structure as bright peaks.  The
-            ``difference`` overlay is ignored in this mode.
+            Render the **2-D Fourier map** (centred FFT magnitude) instead of the data
+            image. Cannot be combined with difference.
         window : bool, default False
             (Fourier mode) apply a Hann window first to suppress edge artifacts.
         log, remove_dc : bool
             (Fourier mode) as on :meth:`fourier` -- compress the dynamic range, and drop the
             central DC spike.  Both default to ``True``.
         colorbar : bool, default False
-            Attach a colourbar to the axes.  The data image is always ``ax.images[0]`` if
-            you would rather build one yourself -- note the ``difference`` overlay, when
-            present, is appended after it.
+            Attach a colourbar to the axes. The single image is ``ax.images[0]``.
         **imshow_kw
             Extra keyword arguments forwarded to ``matplotlib``'s ``imshow`` -- e.g.
             ``norm=matplotlib.colors.LogNorm()`` for heavy-tailed data.
@@ -447,8 +425,8 @@ class HilbertPlot:
 
         Examples
         --------
-        >>> import numpy as np, hilbertplot
-        >>> plot = hilbertplot.hilbert_plot(0, np.arange(4096))
+        >>> import numpy as np; from hilbertplot._viz.hilbert_plot import hilbert_plot
+        >>> plot = hilbert_plot(0, np.arange(4096))
         >>> ax = plot.draw("gray", difference=True)                  # doctest: +SKIP
         >>> ax = plot.draw("magma", fourier=True)                    # doctest: +SKIP
         >>> ax = plot.draw(colorbar=True)                            # doctest: +SKIP
@@ -460,6 +438,7 @@ class HilbertPlot:
         # Every argument-only check happens before a figure exists, so a rejected call
         # cannot leak one -- matplotlib keeps open figures alive globally, and a loop that
         # sweeps normalisations catching ValueError would otherwise grow without bound.
+        _check_transforms(fourier, difference)
         _reject_unknown_kwargs(imshow_kw)
         # A caller-supplied `norm` carries its own limits, and matplotlib refuses to accept
         # both; so once a norm is given we must not fill in our default vmin/vmax.
@@ -470,10 +449,15 @@ class HilbertPlot:
                 "itself, e.g. LogNorm(vmin=1, vmax=1000)"
             )
         values, points, side = self._layout(granularity, order, fit)
-        image = scatter(points, values, side, fill)
-        if fourier:
-            image = fourier_spectrum(image, log=log, window=window, remove_dc=remove_dc)
-            difference = False  # not meaningful on a spectrum
+        if difference:
+            image = difference_map(points, side)
+        else:
+            image = scatter(points, values, side, fill)
+            if fourier:
+                image = fourier_spectrum(image, log=log, window=window, remove_dc=remove_dc)
+        if not np.isfinite(image).any():
+            raise ValueError("plot needs at least one finite value")
+        resolved_cmap = _resolve_cmap(cmap)
         if ax is None:
             _, ax = plt.subplots(figsize=(5, 5))
         if fourier and not caller_norm and (vmin is None or vmax is None):
@@ -488,24 +472,16 @@ class HilbertPlot:
                 vmax = np.nanmax(image)
             imshow_kw["vmin"] = vmin
             imshow_kw["vmax"] = vmax
-        mappable = ax.imshow(
-            image,
-            origin="lower",
-            interpolation="nearest",
-            cmap=_resolve_cmap(cmap),
-            extent=(-0.5, side - 0.5, -0.5, side - 0.5),
-            **imshow_kw,
-        )
-        if difference:
-            _overlay_difference(
-                ax, difference_map(points, side), side, difference_threshold, difference_color
-            )
+        imshow_kw.setdefault("origin", "lower")
+        imshow_kw.setdefault("interpolation", "nearest")
+        imshow_kw.setdefault("extent", (-0.5, side - 0.5, -0.5, side - 0.5))
+        mappable = ax.imshow(image, cmap=resolved_cmap, **imshow_kw)
         bare_axes(ax)
         if colorbar:
             ax.get_figure().colorbar(mappable, ax=ax, fraction=0.046, pad=0.04)
         if title is None:
             gran = "" if granularity == 1 else f", {granularity}-granularity"
-            kind = "Fourier map" if fourier else "Hilbert plot"
+            kind = "Fourier map" if fourier else "Difference map" if difference else "Hilbert plot"
             title = f"{self._curve.name}  {kind} ({side}x{side}{gran})"
         ax.set_title(title, fontsize=9)
         return ax
@@ -551,8 +527,8 @@ class HilbertPlot:
 
         Examples
         --------
-        >>> import numpy as np, hilbertplot
-        >>> hilbertplot.hilbert_plot(0, np.arange(1, 101)).save(
+        >>> import numpy as np; from hilbertplot._viz.hilbert_plot import hilbert_plot
+        >>> hilbert_plot(0, np.arange(1, 101)).save(
         ...     "out.png", ["red", "green", "tab:blue"])          # doctest: +SKIP
         'out.png'
         """
@@ -580,13 +556,13 @@ class HilbertPlot:
 def hilbert_plot(curve: Curve | int | str, data) -> HilbertPlot:
     """Make a :class:`HilbertPlot` straight from a curve and data.
 
-    A shortcut for ``hilbertplot.curve(which).plot_data(data)`` that skips the intermediate
+    A shortcut for ``hilbertplot.curves.info(which).plot_data(data)`` that skips the intermediate
     curve object.
 
     Parameters
     ----------
     curve : Curve or int or str
-        A :class:`Curve`, or anything :func:`hilbertplot.curve` accepts (index, name or symbol).
+        A :class:`Curve`, or an index, name or paper symbol.
     data : array_like
         The 1-D sequence to visualise.
 
@@ -596,8 +572,8 @@ def hilbert_plot(curve: Curve | int | str, data) -> HilbertPlot:
 
     Examples
     --------
-    >>> import hilbertplot
-    >>> plot = hilbertplot.hilbert_plot(0, range(1024))    # curve 0 (Hilbert)
+    >>> from hilbertplot._viz.hilbert_plot import hilbert_plot
+    >>> plot = hilbert_plot(0, range(1024))    # curve 0 (Hilbert)
     >>> plot.show(["red", "green", "tab:blue"])      # doctest: +SKIP
     """
     c = curve if isinstance(curve, Curve) else _lookup_curve(curve)

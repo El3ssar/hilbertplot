@@ -57,6 +57,8 @@ include = [
     "/src/hilbertplot",
     "/tests",
     "/examples/*.py",
+    "/scripts/*.py",
+    "/scripts/*.sh",
     "/README.md",
     "/CHANGELOG.md",
     "/LICENSE",
@@ -87,20 +89,20 @@ select = ["E", "F", "I", "UP", "B", "W", "RUF", "SIM", "C4", "RET", "PERF", "NPY
 "examples/*.py" = ["RUF001"]
 
 [tool.semantic_release]
-# pyproject keeps a STATIC version = "0.1.0"; PSR stamps BOTH files in sync on
-# every release so the two never drift.
+# Semantic-release determines the version from commit titles and stamps both files.
 version_toml = ["pyproject.toml:project.version"]
 version_variables = ["src/hilbertplot/__init__.py:__version__"]
+# The build hook refreshes this generated file AFTER version stamping; include it
+# in the same release commit so the tag and lockfile always describe one version.
+assets = ["uv.lock"]
 tag_format = "v{version}"
 # Stay on 0.x: without this, PSR (v10 default = false) forces the first release
 # to 1.0.0. With it, a feat on 0.0.0 -> 0.1.0, and breaking changes still cut 1.0.0.
 allow_zero_version = true
 major_on_zero = true
 commit_parser = "conventional"
-# uv-based build (produces sdist + wheel). In CI this runs only for local
-# `semantic-release version` invocations; the GitHub Action sets build:false and
-# the publish job rebuilds from the tag, because the action's container has no uv.
-build_command = "uv build"
+# The hook bootstraps uv in the PSR Docker action, refreshes the lock, then builds.
+build_command = "bash scripts/build_release.sh"
 
 [tool.semantic_release.branches.main]
 match = "(main|master)"

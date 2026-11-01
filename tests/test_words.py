@@ -2,7 +2,7 @@
 
 import pytest
 
-import hilbertplot as hp
+from hilbertplot._core import curve as curves
 from hilbertplot._core.generation import clear_cache, curve_codes, curve_word, word_length
 from hilbertplot._core.geometry import word_to_codes
 
@@ -17,18 +17,18 @@ def test_hilbert_order_1():
 
 
 def test_order_zero_is_empty_for_all_curves():
-    for c in hp.catalog():
+    for c in curves.catalog():
         assert c.word(0) == ""
 
 
 @pytest.mark.parametrize("order", range(0, 8))
 def test_word_length_invariant(order):
-    for c in hp.catalog():
+    for c in curves.catalog():
         assert len(c.word(order)) == word_length(order) == 4**order - 1
 
 
 def test_words_only_use_four_letters():
-    for c in hp.catalog():
+    for c in curves.catalog():
         assert set(c.word(4)) <= set("udlr")
 
 
@@ -53,7 +53,7 @@ def test_high_order_generation():
     # Exercise the fast path at scale: a million-stroke curve stays space-filling.
     from hilbertplot._core.geometry import is_space_filling
 
-    pts = hp.curve(0).points(10)
+    pts = curves.curve(0).points(10)
     assert pts.shape == (4**10, 2)
     assert is_space_filling(pts, 2**10)
 

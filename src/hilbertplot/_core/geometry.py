@@ -108,9 +108,8 @@ def is_space_filling(points: np.ndarray, side: int, *, connected: bool = True) -
     checks that consecutive points are 4-adjacent, which is what makes the sequence a
     *path* rather than merely a permutation of the cells.
 
-    Takes a **side**, not an order, so it applies equally to :meth:`~hilbertplot.Curve.points`
-    (where the side is ``2**order``) and to :meth:`~hilbertplot.Curve.grid` on an arbitrary
-    square.
+    Takes a **side**, not an order, so it applies equally to power-of-two paths
+    and arbitrary-square paths.
 
     Parameters
     ----------
@@ -128,14 +127,15 @@ def is_space_filling(points: np.ndarray, side: int, *, connected: bool = True) -
     Examples
     --------
     >>> import hilbertplot
-    >>> c = hilbertplot.curve(0)
-    >>> hilbertplot.is_space_filling(c.points(3), 8)
+    >>> from hilbertplot._core.curve import curve
+    >>> c = curve(0)
+    >>> hilbertplot.curves.is_space_filling(c.points(3), 8)
     True
-    >>> hilbertplot.is_space_filling(c.grid(10), 10)      # arbitrary squares too
+    >>> hilbertplot.curves.is_space_filling(c.grid(10), 10)      # arbitrary squares too
     True
-    >>> hilbertplot.is_space_filling(c.points(3), 16)     # wrong side
+    >>> hilbertplot.curves.is_space_filling(c.points(3), 16)     # wrong side
     False
-    >>> hilbertplot.is_space_filling([[0, 0], [0, 1], [1, 1], [1, 0]], 2)   # a plain list
+    >>> hilbertplot.curves.is_space_filling([[0, 0], [0, 1], [1, 1], [1, 0]], 2)   # a plain list
     True
     """
     points = np.asarray(points)

@@ -3,8 +3,9 @@
 import numpy as np
 import pytest
 
-import hilbertplot as hp
+from hilbertplot._core import curve as curves
 from hilbertplot._data.mapping import granulate, order_floor, order_for
+from hilbertplot._viz.hilbert_plot import hilbert_plot as make_plot
 
 
 # -- order_for / order_floor ------------------------------------------------
@@ -53,39 +54,39 @@ def test_granulate_rejects_bad_l():
 def test_plot_data_returns_hilbertplot_and_draws_nothing():
     from hilbertplot._viz.hilbert_plot import HilbertPlot
 
-    plot = hp.curve(0).plot_data(np.arange(64))
+    plot = curves.curve(0).plot_data(np.arange(64))
     assert isinstance(plot, HilbertPlot)
     assert len(plot) == 64
-    assert plot.curve is hp.curve(0)
+    assert plot.curve is curves.curve(0)
 
 
 def test_hilbert_plot_shortcut_matches_curve_path():
-    a = hp.hilbert_plot(0, np.arange(64)).image(order=3)
-    b = hp.curve(0).plot_data(np.arange(64)).image(order=3)
+    a = make_plot(0, np.arange(64)).image(order=3)
+    b = curves.curve(0).plot_data(np.arange(64)).image(order=3)
     assert np.array_equal(a, b, equal_nan=True)
 
 
 def test_hilbert_plot_accepts_index_name_or_curve():
-    assert hp.hilbert_plot(1, [0]).curve.index == 1
-    assert hp.hilbert_plot("moore", [0]).curve.index == 1
-    assert hp.hilbert_plot(hp.curve(5), [0]).curve.index == 5
+    assert make_plot(1, [0]).curve.index == 1
+    assert make_plot("moore", [0]).curve.index == 1
+    assert make_plot(curves.curve(5), [0]).curve.index == 5
 
 
 # -- the mapping ------------------------------------------------------------
 def test_map_places_each_value_on_the_path():
-    c = hp.curve(0)
+    c = curves.curve(0)
     img = c.plot_data(np.arange(64)).image(order=3)
     for i, (x, y) in enumerate(c.points(3)):
         assert img[y, x] == i
 
 
 def test_default_order_and_shape():
-    assert hp.hilbert_plot(0, np.zeros(1000)).image().shape == (32, 32)  # order 5
+    assert make_plot(0, np.zeros(1000)).image().shape == (32, 32)  # order 5
 
 
 def test_periodic_10_is_a_checkerboard():
     # Fig. 6: the ·10· periodic pattern maps to a perfect checkerboard.
-    img = hp.hilbert_plot(0, np.tile([1, 0], 512)).image()
+    img = make_plot(0, np.tile([1, 0], 512)).image()
     assert img.shape == (32, 32)
     assert np.all(np.abs(np.diff(img, axis=0)) == 1)
     assert np.all(np.abs(np.diff(img, axis=1)) == 1)
@@ -93,13 +94,13 @@ def test_periodic_10_is_a_checkerboard():
 
 def test_map_works_for_every_curve():
     data = np.arange(256)
-    for c in hp.catalog():
+    for c in curves.catalog():
         img = c.plot_data(data).image(order=4)
         assert np.array_equal(np.sort(img.ravel()), data.astype(float))
 
 
 def test_granularity_at_plot_time_collapses_period():
-    plot = hp.hilbert_plot(0, np.tile([1, 1, 0, 0], 256))
+    plot = make_plot(0, np.tile([1, 1, 0, 0], 256))
     assert np.allclose(plot.image(granularity=4), 0.5)
     # the same plot object also renders faithfully -- granularity is per-render
     faithful = plot.image(granularity=1)
@@ -108,37 +109,37 @@ def test_granularity_at_plot_time_collapses_period():
 
 # -- pad vs truncate --------------------------------------------------------
 def test_fit_pad_leaves_blank_cells():
-    img = hp.hilbert_plot(0, np.arange(1000)).image(fit="pad")
+    img = make_plot(0, np.arange(1000)).image(fit="pad")
     assert img.shape == (32, 32)
     assert np.isnan(img).sum() == 32 * 32 - 1000
 
 
 def test_fit_truncate_fills_a_smaller_square():
-    img = hp.hilbert_plot(0, np.arange(1000)).image(fit="truncate")
+    img = make_plot(0, np.arange(1000)).image(fit="truncate")
     assert img.shape == (16, 16)  # order_floor(1000) = 4
     assert not np.isnan(img).any()
     assert np.array_equal(np.sort(img.ravel()), np.arange(256, dtype=float))
 
 
 def test_pad_fill_value_is_configurable():
-    img = hp.hilbert_plot(0, np.ones(10)).image(order=3, fill=-1.0)
+    img = make_plot(0, np.ones(10)).image(order=3, fill=-1.0)
     assert (img == -1.0).sum() == 64 - 10
 
 
 def test_explicit_small_order_truncates():
-    img = hp.hilbert_plot(0, np.arange(100)).image(order=3)  # 64 cells < 100
+    img = make_plot(0, np.arange(100)).image(order=3)  # 64 cells < 100
     assert img.shape == (8, 8)
     assert np.array_equal(np.sort(img.ravel()), np.arange(64, dtype=float))
 
 
 def test_bad_fit_rejected():
     with pytest.raises(ValueError, match="fit must be one of"):
-        hp.hilbert_plot(0, [1, 2, 3]).image(fit="nonsense")
+        make_plot(0, [1, 2, 3]).image(fit="nonsense")
 
 
 # -- unroll (2D -> 1D along the curve) --------------------------------------
 def test_unroll_reads_values_in_curve_order():
-    c = hp.curve(0)
+    c = curves.curve(0)
     grid = np.arange(16).reshape(4, 4)
     got = c.unroll(grid)
     expected = [grid[y, x] for x, y in c.points(2)]
@@ -149,38 +150,38 @@ def test_unroll_reads_values_in_curve_order():
 @pytest.mark.parametrize("order", [1, 2, 4])
 def test_unroll_is_inverse_of_hilbert_plot(index, order):
     data = np.arange(4**order)
-    img = hp.hilbert_plot(index, data).image(order=order)
-    assert np.array_equal(hp.curve(index).unroll(img), data)
+    img = make_plot(index, data).image(order=order)
+    assert np.array_equal(curves.curve(index).unroll(img), data)
 
 
 def test_unroll_rejects_non_square():
     with pytest.raises(ValueError, match="square 2-D array"):
-        hp.curve(0).unroll(np.zeros((4, 8)))
+        curves.curve(0).unroll(np.zeros((4, 8)))
 
 
 def test_unroll_rejects_non_power_of_two_for_non_generalizing_curve():
     # Moore does not generalize, so a non-2^k side must be rejected.
-    assert not hp.curve(1).generalizes
+    assert not curves.curve(1).generalizes
     with pytest.raises(ValueError, match="not a power of two"):
-        hp.curve(1).unroll(np.zeros((6, 6)))
+        curves.curve(1).unroll(np.zeros((6, 6)))
 
 
 def test_unroll_accepts_arbitrary_square_for_generalizing_curve():
-    c = hp.curve(0)  # Hilbert generalizes
+    c = curves.curve(0)  # Hilbert generalizes
     grid = np.arange(49).reshape(7, 7)  # 7 is not a power of two
     got = c.unroll(grid)
     expected = [grid[y, x] for x, y in c.grid(7)]
     assert got.tolist() == expected
     # round trip through an arbitrary-square Hilbert plot
     data = np.arange(49)
-    img = hp.hilbert_plot(0, data).image()  # 7x7 tight square
+    img = make_plot(0, data).image()  # 7x7 tight square
     assert np.array_equal(c.unroll(img), data)
 
 
 # -- difference map (locality-loss field) -----------------------------------
 def test_difference_map_shape_and_range():
     for index in (0, 5, 12):
-        D = hp.curve(index).difference_map(4)
+        D = curves.curve(index).difference_map(4)
         assert D.shape == (16, 16)
         assert np.isfinite(D).all()
         assert (D >= 0).all()
@@ -188,14 +189,14 @@ def test_difference_map_shape_and_range():
 
 def test_difference_map_depends_only_on_the_curve():
     # It is a property of the curve's ordering, independent of any data.
-    a = hp.curve(0).difference_map(3)
-    b = hp.curve(0).difference_map(3)
+    a = curves.curve(0).difference_map(3)
+    b = curves.curve(0).difference_map(3)
     assert np.array_equal(a, b)
-    assert not np.array_equal(hp.curve(0).difference_map(3), hp.curve(5).difference_map(3))
+    assert not np.array_equal(curves.curve(0).difference_map(3), curves.curve(5).difference_map(3))
 
 
 def test_barrier_shrinks_as_threshold_rises():
-    D = hp.curve(0).difference_map(5)
+    D = curves.curve(0).difference_map(5)
 
     def n_barrier(t):
         return int((D.mean() + t * D.std() < D).sum())
@@ -209,7 +210,7 @@ def test_interior_cell_averages_eight_neighbours():
     # difference map is well defined and symmetric under the curve's symmetry.
     from hilbertplot._data.mapping import difference_map, label_map
 
-    pts = hp.curve(0).points(2)
+    pts = curves.curve(0).points(2)
     lab = label_map(pts, 4)
     # label_map is a bijection onto 0..15
     assert sorted(lab.ravel().tolist()) == list(range(16))

@@ -50,10 +50,10 @@ def set_cell_limit(cells: int | None) -> int:
     Examples
     --------
     >>> import hilbertplot
-    >>> previous = hilbertplot.set_cell_limit(4 ** 10)
-    >>> hilbertplot.cell_limit()
+    >>> previous = hilbertplot.config.set_cell_limit(4 ** 10)
+    >>> hilbertplot.config.cell_limit()
     1048576
-    >>> _ = hilbertplot.set_cell_limit(previous)
+    >>> _ = hilbertplot.config.set_cell_limit(previous)
     """
     global _max_cells
     if cells is None:
@@ -87,7 +87,7 @@ def check_cells(cells: int, what: str, *, bytes_per_cell: int = BYTES_PER_CELL) 
     caller is about to build -- 16 for an ``(x, y)`` pair, 1 for a stroke of a word.
 
     The quoted size is that array alone.  Peak memory runs higher, because building it takes
-    intermediates: expect roughly 1.5x for :meth:`~hilbertplot.Curve.points` and several
+    intermediates: expect roughly 1.5x for :meth:`~hilbertplot._core.curve.Curve.points` and several
     times that for the map builders, which is why the default ceiling sits well below what
     a machine could actually hold.
     """
@@ -95,6 +95,6 @@ def check_cells(cells: int, what: str, *, bytes_per_cell: int = BYTES_PER_CELL) 
         raise ValueError(
             f"{what} needs {cells:,} cells ({_gib(cells, bytes_per_cell)}), over the "
             f"{_max_cells:,}-cell limit ({_gib(_max_cells, bytes_per_cell)}). Use a smaller "
-            f"size, or raise the ceiling with hilbertplot.set_cell_limit() if you have the "
+            f"size, or raise the ceiling with hilbertplot.config.set_cell_limit() if you have the "
             f"memory."
         )
