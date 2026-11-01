@@ -56,13 +56,21 @@ the interpretation of brightness changes.
 
 ## Block means and the choice of g
 
-![Period-four and period-six samples and their granularity-four means](../_static/generated/block_means.png)
+```{raw} html
+<figure><img src="../_static/generated/block_means.png" alt="Period-four and period-six samples and their granularity-four means"></figure>
+```
 
 Choosing $g$ is part of the analysis. A multiple of both periods removes the distinction:
 at granularity 12, complete blocks of both run types average to 1/2. A final
 short block, if present, is averaged separately.
 
-![Granularity one, four and twelve, on the same zero-to-one scale](../_static/generated/granularities.png)
+```{raw} html
+<div class="plot-three">
+<figure><img src="../_static/generated/granularity-1.png" alt="Periodic regions at granularity 1"></figure>
+<figure><img src="../_static/generated/granularity-4.png" alt="Periodic regions at granularity 4"></figure>
+<figure><img src="../_static/generated/granularity-12.png" alt="Periodic regions at granularity 12"></figure>
+</div>
+```
 
 ## Numeric output and missing values
 

@@ -22,14 +22,20 @@ to build and whether values may be discarded.
 import numpy as np
 import hilbertplot as hp
 
-values = np.sin(np.arange(900) / 15)
+values = np.arange(900)
 
 hp.plot(values, fit="pad")
 hp.plot(values, curve=0, fit="square")
 hp.plot(values, fit="truncate")
 ```
 
-![Pad, square and truncate applied to nine hundred values on a common color scale](../_static/generated/fitting.png)
+```{raw} html
+<div class="plot-three">
+<figure><img src="../_static/generated/fit-pad.png" alt="900 values padded to 32 square"><figcaption>124 unused cells; all 900 values retained.</figcaption></figure>
+<figure><img src="../_static/generated/fit-square.png" alt="900 values on a 30 square"><figcaption>Exactly 900 cells; no padding or truncation.</figcaption></figure>
+<figure><img src="../_static/generated/fit-truncate.png" alt="The first 256 values retained on a 16 square"><figcaption>644 values discarded. The same color scale makes the retained range visible.</figcaption></figure>
+</div>
+```
 
 ## Fixed size
 

@@ -67,7 +67,12 @@ for index, (x, y) in enumerate(points):
     assert labels[y, x] == index
 ```
 
-![Visit index at every cell for two order-three curves](../_static/generated/labels.png)
+```{raw} html
+<div class="plot-pair">
+<figure><img src="../_static/generated/labels-hilbert.png" alt="Hilbert visit indices zero to fifteen"></figure>
+<figure><img src="../_static/generated/labels-moore.png" alt="Moore visit indices zero to fifteen"></figure>
+</div>
+```
 
 `hp.curves.difference_map()` compares these labels at spatially neighbouring cells.
 [Its definition is in the transform guide](transforms.md#difference-where-spatial-neighbours-are-far-apart-in-sequence-order).

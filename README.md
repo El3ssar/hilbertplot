@@ -208,24 +208,6 @@ Read the [documentation](https://el3ssar.github.io/hilbertplot/) for guides,
 the plot gallery, and the complete function reference. The source is in
 [docs/](docs/); see [CONTRIBUTING.md](CONTRIBUTING.md#documentation) to preview it locally.
 
-## Migrating from 0.2
-
-Version 1.0 replaces the object-based 0.2.0 interface:
-
-| Previous | New |
-| --- | --- |
-| `hilbert_plot(12, data).draw()` | `plot(data, curve=12)` |
-| `curve(12).draw(4)` | `plot_curve(12, order=4)` |
-| `plot.save(path)` | `fig = plot(data); fig.savefig(path)` |
-| `curve(12).points(4)` | `hp.curves.points(12, order=4)` |
-| `curve(12).unroll(img)` | `hp.data.from_grid(img, curve=12)` |
-| `curve(12).name` | `hp.curves.info(12)["name"]` |
-| `proper().names` | `[c["name"] for c in hp.curves.proper()]` |
-
-The old `Curve`, `CurveList`, `HilbertPlot`, and `hilbert_plot` exports are removed.
-`difference=True` now renders the complete difference map. Rendering defaults to
-power-of-two padding. See the documentation migration guide for these intentional interface changes.
-
 ## Citation
 
 If you use hilbertplot in your work, please cite the

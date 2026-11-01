@@ -93,3 +93,12 @@ section#hilbertplot > h1 { display: none; }
 @media (max-width: 540px) {
   .content:has(.landing-hero) .content-icon-container { display: none; }
 }
+
+/* Keep construction figures and catalog entries legible instead of shrinking a mosaic. */
+article img[src*="construction-"] { max-width: 620px; margin-inline: auto; }
+.curve-catalog { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1.2rem; }
+.curve-catalog figure { margin: 0; min-width: 0; }
+.curve-catalog img { width: 100%; border: 0 !important; }
+.curve-catalog figcaption { display: grid; gap: .3rem; font-size: .75rem; line-height: 1.5; }
+.curve-catalog figcaption span { color: var(--doc-muted); font-size: .68rem; }
+@media(max-width: 760px) { .curve-catalog { grid-template-columns: repeat(2,minmax(0,1fr)); } }

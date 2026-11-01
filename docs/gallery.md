@@ -43,17 +43,30 @@ The regions are distinguished by response to averaging, not by different input m
 **Input:** four curve constructions at the same resolution.
 **Operation:** average visit-index distance to up-to-eight spatial neighbours.
 
-![Comparable locality fields with shared logarithmic color limits](_static/generated/locality.png)
+```{raw} html
+<div class="plot-pair">
+<figure><img src="_static/generated/locality-0.png" alt="Visit-index distance field for curve 0 on the shared log scale"></figure>
+<figure><img src="_static/generated/locality-1.png" alt="Visit-index distance field for curve 1 on the shared log scale"></figure>
+<figure><img src="_static/generated/locality-12.png" alt="Visit-index distance field for curve 12 on the shared log scale"></figure>
+<figure><img src="_static/generated/locality-24.png" alt="Visit-index distance field for curve 24 on the shared log scale"></figure>
+</div>
+```
 
 These plots do not use measurement values. The shared logarithmic scale makes both
 small and large distances visible. [Field definition and numeric output](guides/locality.md).
 
 ## RGB arrays: exact reconstruction and permutation
 
-**Input:** a synthetic RGB image with known horizontal, vertical and diagonal variation.
+**Input:** a uint8 RGB test image containing a blue square, orange disk and green stripe.
 **Operation:** read its pixels along curve 0, then write the sequence using curve 0 or 12.
 
-![RGB input, reconstruction with the same curve and permutation with another](_static/generated/rgb_roundtrip.png)
+```{raw} html
+<div class="plot-three">
+<figure><img src="_static/generated/rgb-input.png" alt="Original RGB test pattern"></figure>
+<figure><img src="_static/generated/rgb-restored.png" alt="Identical pattern reconstructed with the same curve"></figure>
+<figure><img src="_static/generated/rgb-permuted.png" alt="Pixels rearranged by writing with curve twelve"></figure>
+</div>
+```
 
 The same curve recovers every channel value exactly. A different curve changes spatial
 placement while retaining the pixels. [Conversion guarantees](guides/conversion.md).
@@ -63,7 +76,12 @@ placement while retaining the pixels. [Conversion guarantees](guides/conversion.
 **Input:** `exp(3*sin(i/37))`, ranging from approximately 0.05 to 20.09.
 **Operation:** linear or logarithmic color normalization of the same mapped values.
 
-![The same positive array with linear and logarithmic color normalization](_static/generated/normalization.png)
+```{raw} html
+<div class="plot-pair">
+<figure><img src="_static/generated/norm-linear.png" alt="Positive values with linear color normalization"></figure>
+<figure><img src="_static/generated/norm-log.png" alt="The same values with logarithmic color normalization"></figure>
+</div>
+```
 
 Logarithmic color normalization changes visibility across value ranges; it does not
 transform the stored array or calculate a Fourier spectrum.

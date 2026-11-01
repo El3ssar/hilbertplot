@@ -137,7 +137,6 @@ reference/config
 :caption: Project
 
 faq
-migration
 development
 guides/transforms
 ```

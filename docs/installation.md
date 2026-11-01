@@ -24,9 +24,6 @@ print(hp.__version__)
 print(hp.curves.info("Moore")["index"])  # 1
 ```
 
-These guides describe the function-based API introduced in version 1.0. If your examples
-use `Curve`, `HilbertPlot`, or `hilbert_plot(...).draw()`, see [migration](migration.md).
-
 ## Work from source
 
 ```bash
