@@ -19,3 +19,18 @@
     preference.addEventListener('change', updatePlots);
   });
 })();
+
+// The command remains selectable if clipboard access is unavailable.
+document.addEventListener('DOMContentLoaded', () => {
+  const button = document.querySelector('.install-copy');
+  if (!button) return;
+  button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(document.querySelector('#install-command').textContent);
+      button.textContent = 'Copied';
+      setTimeout(() => { button.textContent = 'Copy'; }, 1800);
+    } catch {
+      button.textContent = 'Select text';
+    }
+  });
+});

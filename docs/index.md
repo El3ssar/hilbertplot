@@ -1,13 +1,32 @@
 # hilbertplot
 
 ```{raw} html
-<p class="project-description">Plot one-dimensional arrays along Hilbert-type curves, and convert images to and from curve-ordered sequences.</p>
-<div class="project-meta"><span>40 curve constructions</span><span>NumPy arrays</span><span>Matplotlib figures</span><span>MIT license</span></div>
+<section class="landing-hero" aria-labelledby="landing-title">
+<div class="landing-intro">
+<p class="landing-label">Python · scientific visualization</p>
+<h1 id="landing-title">hilbertplot</h1>
+<p class="landing-description">Plot one-dimensional data along Hilbert curves. Convert images to sequences and reconstruct them along a selected path.</p>
+<div class="landing-actions">
+<a class="landing-primary" href="quickstart.html">Get started</a>
+<a class="landing-secondary" href="reference/plotting.html">API reference</a>
+<a class="landing-source" href="https://github.com/El3ssar/hilbertplot">GitHub</a>
+</div>
+<div class="landing-install">
+<div class="install-label"><span>Install with pip</span><a href="installation.html">Installation options</a></div>
+<div class="install-line"><code id="install-command">pip install "hilbertplot[plot]"</code><button class="install-copy" type="button" aria-label="Copy installation command">Copy</button></div>
+</div>
+<p class="landing-packages"><a href="https://pypi.org/project/hilbertplot/">PyPI package</a><span aria-hidden="true">·</span><a href="https://doi.org/10.5281/zenodo.23858267">Zenodo DOI</a><span aria-hidden="true">·</span><span>Python ≥ 3.10</span></p>
+</div>
+<figure class="landing-figure"><img src="_static/hero-curve.svg" alt="Standard Hilbert curve at order four, showing its entry and exit"><figcaption>Curve 0 · order 4 · 256 cells</figcaption></figure>
+</section>
+<nav class="landing-starts" aria-label="Documentation starting points">
+<a href="quickstart.html"><span class="start-category">Plotting</span><strong>Plot your data</strong><span>Select a curve, set colors, and save a figure.</span></a>
+<a href="guides/conversion.html"><span class="start-category">Conversion</span><strong>Images and sequences</strong><span>Read an image in curve order and reconstruct it.</span></a>
+<a href="guides/curves.html"><span class="start-category">Mathematics</span><strong>Curve constructions</strong><span>Kernels, classifications, and supported shapes.</span></a>
+</nav>
 ```
 
-```bash
-pip install "hilbertplot[plot]"
-```
+## Basic usage
 
 ```python
 import numpy as np
@@ -15,7 +34,11 @@ import hilbertplot as hp
 
 values = np.arange(256)
 fig = hp.plot(values, curve=0, cmap="cividis")
+fig.savefig("hilbertplot.png", dpi=180)
 ```
+
+Select any of the forty curves by index, label or paper symbol. Plotting returns a
+standard Matplotlib figure; array conversion returns NumPy arrays.
 
 ## Analysis examples
 
@@ -48,20 +71,6 @@ The resulting regions are much easier to distinguish.
 ```
 
 [Dataset, block means and choice of granularity](guides/granularity.md)
-
-## Operations
-
-| Operation | Function | Result |
-| --- | --- | --- |
-| Plot a sequence | `hp.plot(values, curve=12)` | Matplotlib figure |
-| Draw a curve | `hp.plot_curve(0, order=3)` | Matplotlib figure |
-| Arrange values on a grid | `hp.data.to_grid(values, curve=12)` | NumPy array |
-| Read an image along a curve | `hp.data.from_grid(image, curve=12)` | Flat NumPy array |
-| Inspect a construction | `hp.curves.info(12)` | Metadata dictionary |
-
-Each plotting call produces one plot. Select a curve by index, label, or paper symbol;
-no curve object is required. Numeric conversion preserves dtypes and masks. Plotting
-converts real samples to floating point.
 
 ## Documentation
 
