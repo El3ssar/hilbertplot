@@ -542,16 +542,20 @@ def test_construction_does_not_triple_peak_memory():
     import sys
 
     script = """
-import numpy as np, resource, sys
+import numpy as np, tracemalloc
 from hilbertplot._viz.hilbert_plot import hilbert_plot as make_plot
 n = 8_000_000
+# NumPy traces its data buffers. Start after imports so interpreter overhead and
+# inherited process high-water marks cannot masquerade as another array copy.
+tracemalloc.start()
 data = np.arange(n, dtype=float)
-mib = n * 8 / 2**20
 plot = make_plot(0, data)
-rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-peak = rss / (2**20 if sys.platform == "darwin" else 1024)
-assert plot.data[0] == 0.0
-print(round(peak / mib, 2))
+current, peak = tracemalloc.get_traced_memory()
+if current < 2 * data.nbytes:
+    raise AssertionError("NumPy data buffers were not tracked")
+if plot.data[0] != 0.0:
+    raise AssertionError("construction changed the input")
+print(round(peak / data.nbytes, 2))
 """
     ratio = float(
         subprocess.run(
