@@ -63,6 +63,14 @@ validates `fit` instead of ignoring it.
 
 <!-- version list -->
 
+## v1.0.3 (2026-11-01)
+
+### Bug Fixes
+
+- Explain curve construction and remove migration material
+  ([`0aa8f51`](https://github.com/El3ssar/hilbertplot/commit/0aa8f515f53d0e3c2ac300f14421d442b615824b))
+
+
 ## v1.0.2 (2026-11-01)
 
 ### Bug Fixes
