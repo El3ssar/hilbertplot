@@ -63,6 +63,19 @@ validates `fit` instead of ignoring it.
 
 <!-- version list -->
 
+## v1.0.1 (2026-11-01)
+
+### Bug Fixes
+
+- Provide citation metadata for software archives
+  ([`be2d92b`](https://github.com/El3ssar/hilbertplot/commit/be2d92b00b5d8ce083eec3c6c9ec5a2d9215028c))
+
+### Testing
+
+- Measure construction allocations without interpreter overhead
+  ([`0b95704`](https://github.com/El3ssar/hilbertplot/commit/0b9570438681c47d0736415c1e74fb8522d2f04e))
+
+
 ## v1.0.0 (2026-11-01)
 
 ### Features

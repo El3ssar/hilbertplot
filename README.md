@@ -4,6 +4,7 @@
 [![CI](https://github.com/El3ssar/hilbertplot/actions/workflows/ci.yml/badge.svg)](https://github.com/El3ssar/hilbertplot/actions/workflows/ci.yml)
 [![Python versions](https://img.shields.io/pypi/pyversions/hilbertplot.svg)](https://pypi.org/project/hilbertplot/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23858267.svg)](https://doi.org/10.5281/zenodo.23858267)
 
 Plot long numeric sequences on any of **40 two-dimensional Hilbert-type curves**.
 Choose a curve by number, label, or paper symbol. The interface is functions returning
@@ -223,6 +224,15 @@ Version 1.0 replaces the object-based 0.2.0 interface:
 The old `Curve`, `CurveList`, `HilbertPlot`, and `hilbert_plot` exports are removed.
 `difference=True` now renders the complete difference map. Rendering defaults to
 power-of-two padding. See the documentation migration guide for these intentional interface changes.
+
+## Citation
+
+If you use hilbertplot in your work, please cite the
+[Zenodo archive](https://doi.org/10.5281/zenodo.23858267). This DOI covers all versions;
+the archive lists a separate DOI for each release when you need to cite an exact version.
+Version 1.0.1 is archived at [10.5281/zenodo.23858268](https://doi.org/10.5281/zenodo.23858268).
+New GitHub releases are archived automatically. Citation metadata are in
+[CITATION.cff](CITATION.cff).
 
 ## License
 

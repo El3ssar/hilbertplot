@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use hilbertplot in your work, please cite this software."
+type: software
+title: hilbertplot
+doi: 10.5281/zenodo.23858267
+authors:
+  - family-names: Estevez
+    given-names: Daniel
+repository-code: "https://github.com/El3ssar/hilbertplot"
+url: "https://github.com/El3ssar/hilbertplot"
+license: MIT
+abstract: >-
+  Plot one-dimensional numeric sequences along forty two-dimensional Hilbert-type
+  curves, and convert images and arrays to and from sequences along a selected
+  curve path. Includes square and quasisquare constructions, direct coordinate
+  indexing, Fourier transforms, difference maps, and sequence granularity controls.
+keywords:
+  - Hilbert curves
+  - space-filling curves
+  - scientific visualization
+  - array conversion
+  - locality
