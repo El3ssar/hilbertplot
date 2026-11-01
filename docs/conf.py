@@ -24,12 +24,25 @@ html_favicon = "_static/favicon.svg"
 html_last_updated_fmt = "%b %d, %Y"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_js_files = ["theme-plots.js"]
 html_theme_options = {
     "source_repository": "https://github.com/El3ssar/hilbertplot/",
     "source_branch": "main",
     "source_directory": "docs/",
-    "light_css_variables": {"color-brand-primary": "#146d78", "color-brand-content": "#126571"},
-    "dark_css_variables": {"color-brand-primary": "#67ced4", "color-brand-content": "#83dce0"},
+    "light_css_variables": {
+        "color-brand-primary": "#225b99",
+        "color-brand-content": "#225b99",
+        "color-background-primary": "#ffffff",
+        "color-background-secondary": "#f4f6f9",
+        "color-foreground-primary": "#243348",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#93bdf2",
+        "color-brand-content": "#93bdf2",
+        "color-background-primary": "#171d27",
+        "color-background-secondary": "#1d2532",
+        "color-foreground-primary": "#dce5f1",
+    },
 }
 myst_heading_anchors = 4
 myst_enable_extensions = ["colon_fence", "dollarmath"]

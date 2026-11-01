@@ -1,281 +1,422 @@
-"""Build deterministic scientific illustrations and branding from the public API."""
+"""Generate reproducible documentation figures in matching light and dark themes."""
 
 from pathlib import Path
 
 
 def brand(static):
-    """Write an SVG favicon containing curve 0, order 3, without smoothing the path."""
+    """Write the exact order-3 curve-0 SVG favicon."""
     import hilbertplot as hp
 
-    points = hp.curves.points(0, order=3)
-    coordinates = " ".join(f"{10 + 6 * x},{54 - 6 * y}" for x, y in points)
-    svg = (
+    pts = hp.curves.points(0, order=3)
+    xy = " ".join(f"{10 + 6 * x},{54 - 6 * y}" for x, y in pts)
+    (static / "favicon.svg").write_text(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
-        '<rect width="64" height="64" rx="12" fill="#102c35"/>'
-        f'<polyline points="{coordinates}" fill="none" stroke="#79e3ce" '
-        'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
-        "</svg>\n"
+        '<rect width="64" height="64" rx="8" fill="#172538"/>'
+        f'<polyline points="{xy}" fill="none" stroke="#a6c5ee" '
+        'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>\n'
     )
-    (static / "favicon.svg").write_text(svg)
 
 
 def build(output: Path):
-    """Generate the gallery, comparisons and exact-conversion demonstrations."""
+    """Build figures from public functions and the README's sequence generators."""
+    import importlib.util
+
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import numpy as np
-    from matplotlib.colors import LinearSegmentedColormap, LogNorm
+    from matplotlib.colors import LogNorm
+    from matplotlib.patches import Patch, Rectangle
 
     import hilbertplot as hp
 
-    output.mkdir(parents=True, exist_ok=True)
-    brand(output.parent)
-    plt.rcParams.update(
-        {
-            "figure.facecolor": "#ffffff",
-            "savefig.facecolor": "#ffffff",
-            "font.family": "DejaVu Sans",
-            "font.size": 10,
-            "axes.titleweight": "normal",
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            "axes.labelcolor": "#294650",
-            "text.color": "#18343e",
-            "axes.edgecolor": "#b7c8cd",
-        }
-    )
+    source = Path(__file__).resolve().parents[1] / "examples" / "readme_figures.py"
+    spec = importlib.util.spec_from_file_location("readme_datasets", source)
+    datasets = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(datasets)
+    tm = datasets.thue_morse(4**10)
+    regions = datasets.interleaved_periodic(4**7, seed=3)
     t = np.arange(4096)
-    values = np.sin(2 * np.pi * t / 97) + 0.4 * np.cos(2 * np.pi * t / 31)
+    signed = np.sin(2 * np.pi * t / 97) + 0.4 * np.cos(2 * np.pi * t / 31)
+    output.mkdir(parents=True, exist_ok=True)
+    for previous in output.glob("*.png"):
+        previous.unlink()
+    (output / "hero.svg").unlink(missing_ok=True)
+    brand(output.parent)
 
-    def save(name, fig):
-        fig.savefig(output / f"{name}.png", dpi=150, bbox_inches="tight")
-        plt.close(fig)
+    def render_theme(dark):
+        bg, fg, edge = (
+            ("#171d27", "#dce5f1", "#465469") if dark else ("#ffffff", "#243348", "#c7d1df")
+        )
+        blue, orange, purple = (
+            ("#83b4f2", "#f2b36b", "#c9a1ed") if dark else ("#2864a0", "#b56716", "#8452a4")
+        )
+        kernel_colors = {0: blue, 1: "#4ca497", 3: purple, 4: "#ce7393", 5: orange}
+        suffix = "-dark" if dark else ""
+        with plt.rc_context(
+            {
+                "figure.facecolor": bg,
+                "savefig.facecolor": bg,
+                "axes.facecolor": bg,
+                "text.color": fg,
+                "axes.labelcolor": fg,
+                "axes.edgecolor": edge,
+                "xtick.color": fg,
+                "ytick.color": fg,
+                "font.family": "DejaVu Sans",
+                "font.size": 10,
+                "axes.spines.top": False,
+                "axes.spines.right": False,
+            }
+        ):
 
-    def compare(name, items, render, *, columns=None):
-        columns = columns or len(items)
-        rows = (len(items) + columns - 1) // columns
-        fig, axes = plt.subplots(rows, columns, figsize=(4 * columns, 3.8 * rows), squeeze=False)
-        for ax, item in zip(axes.flat, items, strict=False):
-            render(ax, item)
-        for ax in list(axes.flat)[len(items) :]:
-            ax.set_visible(False)
-        fig.tight_layout(pad=1.5)
-        save(name, fig)
+            def save(name, fig, dpi=170):
+                fig.savefig(
+                    output / f"{name}{suffix}.png", dpi=dpi, bbox_inches="tight", facecolor=bg
+                )
+                plt.close(fig)
 
-    save("curve", hp.plot_curve(0, order=4, title="Hilbert / order 4"))
-    save("quasisquare", hp.plot_curve(3, shape=(15, 16), mode="line", title="Liu2 / 15 x 16"))
-    for name, kw in {
-        "data": {"curve": 0, "title": "Hilbert / 4096 samples"},
-        "moore": {"curve": "Moore", "title": "Moore / same samples"},
-        "fourier": {
-            "fourier": True,
-            "window": True,
-            "cmap": "magma",
-            "title": "Centred FFT magnitude",
-        },
-        "difference": {
-            "difference": True,
-            "cmap": "magma",
-            "title": "Mean neighbour index distance",
-        },
-        "granularity": {"granularity": 16, "title": "Blocks of 16 / means repeated"},
-    }.items():
-        save(name, hp.plot(values, **kw))
-    save("catalog", hp.gallery(order=3, ncols=5))
-    save("proper", hp.gallery(hp.curves.proper(), order=3, ncols=3))
-    save("improper", hp.gallery(hp.curves.improper(), order=3, ncols=3))
-    save("generalizing", hp.gallery(hp.curves.generalizing(), order=3, ncols=4))
+            def save_parts(fig, names):
+                fig.canvas.draw()
+                renderer = fig.canvas.get_renderer()
+                for ax, name in zip(fig.axes, names, strict=True):
+                    bounds = ax.get_tightbbox(renderer).transformed(fig.dpi_scale_trans.inverted())
+                    fig.savefig(
+                        output / f"{name}{suffix}.png",
+                        dpi=200,
+                        bbox_inches=bounds.expanded(1.04, 1.04),
+                        facecolor=bg,
+                    )
 
-    compare(
-        "orders",
-        [1, 2, 3, 4],
-        lambda ax, k: hp.plot_curve(0, order=k, ax=ax, title=f"Order {k} / {4**k} cells"),
-    )
-    compare(
-        "modes",
-        ["line", "fill"],
-        lambda ax, mode: hp.plot_curve(0, order=4, mode=mode, ax=ax, title=mode.capitalize()),
-    )
-    compare(
-        "shapes",
-        [(10, 10), (15, 16), (16, 15)],
-        lambda ax, shape: hp.plot_curve(
-            0, shape=shape, mode="line", ax=ax, title=f"{shape[0]} x {shape[1]}"
-        ),
-    )
-    compare(
-        "curves_signal",
-        [0, 1, 12, 24],
-        lambda ax, c: hp.plot(
-            values, curve=c, ax=ax, colorbar=False, title=f"Curve {c} / {hp.curves.info(c)['name']}"
-        ),
-        columns=2,
-    )
-    compare(
-        "fitting",
-        ["pad", "square", "truncate"],
-        lambda ax, fit: hp.plot(
-            np.arange(900),
-            fit=fit,
-            ax=ax,
-            title=f"{fit} / side {hp.data.to_grid(np.arange(900), fit=fit).shape[0]}",
-            colorbar=False,
-        ),
-    )
-    compare(
-        "granularities",
-        [1, 4, 16, 64],
-        lambda ax, g: hp.plot(
-            values, granularity=g, ax=ax, title=f"Block length {g}", colorbar=False
-        ),
-        columns=2,
-    )
-    compare(
-        "windows",
-        [False, True],
-        lambda ax, w: hp.plot(
-            values,
-            fourier=True,
-            window=w,
-            cmap="magma",
-            ax=ax,
-            title=f"Hann window: {w}",
-            colorbar=False,
-        ),
-    )
-    compare(
-        "spectra",
-        [0, 1, 12],
-        lambda ax, c: hp.plot(
-            values,
-            curve=c,
-            fourier=True,
-            window=True,
-            cmap="magma",
-            ax=ax,
-            title=f"Fourier / curve {c}",
-            colorbar=False,
-        ),
-    )
-    compare(
-        "locality",
-        [0, 1, 12, 24],
-        lambda ax, c: hp.plot(
-            values,
-            curve=c,
-            difference=True,
-            cmap="magma",
-            ax=ax,
-            vmin=0,
-            vmax=4095,
-            title=f"Curve {c} / common scale",
-            colorbar=False,
-        ),
-        columns=2,
-    )
-    compare(
-        "colors",
-        ["viridis", "magma", ["#12343f", "#81d8c0", "#fff0b8"]],
-        lambda ax, cm: hp.plot(
-            values,
-            cmap=cm,
-            ax=ax,
-            title=cm if isinstance(cm, str) else "Custom color stops",
-            colorbar=False,
-        ),
-    )
-    heavy = np.exp(3 * np.sin(t / 37))
-    compare(
-        "normalization",
-        [False, True],
-        lambda ax, log: hp.plot(
-            heavy,
-            ax=ax,
-            norm=LogNorm() if log else None,
-            cmap="magma",
-            title="Logarithmic colors" if log else "Linear colors",
-        ),
-    )
+            def compare(name, items, render, columns=None):
+                columns = columns or len(items)
+                rows = (len(items) + columns - 1) // columns
+                fig, axes = plt.subplots(
+                    rows, columns, figsize=(4.5 * columns, 4.1 * rows), squeeze=False
+                )
+                for ax, item in zip(axes.flat, items, strict=False):
+                    render(ax, item)
+                for ax in list(axes.flat)[len(items) :]:
+                    ax.set_visible(False)
+                fig.tight_layout(pad=1.3)
+                if name == "granularity":
+                    save_parts(fig, ["granularity-input", "granularity-result"])
+                save(name, fig)
 
-    fig, ax = plt.subplots(figsize=(10, 2.4))
-    ax.plot(t[:400], values[:400], color="#147d86", lw=1.5)
-    ax.set(xlabel="Sequence index", ylabel="Value", title="Two periods / one input sequence")
-    fig.tight_layout()
-    save("signal", fig)
-    fig, ax = plt.subplots(figsize=(10, 2.6))
-    small = values[:160]
-    ax.plot(small, color="#91a6ad", lw=1, label="Original")
-    ax.step(
-        np.arange(160),
-        hp.data.granulate(small, 16),
-        where="mid",
-        color="#137b80",
-        lw=2,
-        label="Block length 16",
-    )
-    ax.legend(frameon=False, ncols=2)
-    ax.set(xlabel="Sequence index", ylabel="Value")
-    fig.tight_layout()
-    save("block_means", fig)
+            save("curve", hp.plot_curve(0, order=3, color=blue, title="Hilbert (0), order 3"))
+            save(
+                "quasisquare",
+                hp.plot_curve(3, shape=(15, 16), color=purple, title="Liu2 (3), 15 x 16"),
+            )
+            for name, group in [
+                ("catalog", None),
+                ("proper", hp.curves.proper()),
+                ("improper", hp.curves.improper()),
+                ("generalizing", hp.curves.generalizing()),
+            ]:
+                save(
+                    name,
+                    hp.gallery(
+                        group,
+                        order=3,
+                        ncols=5
+                        if name == "catalog"
+                        else 3
+                        if name in ("proper", "improper")
+                        else 4,
+                        color=blue if name != "improper" else orange,
+                    ),
+                )
+            compare(
+                "orders",
+                [1, 2, 3, 4],
+                lambda ax, k: hp.plot_curve(
+                    0, order=k, color=blue, ax=ax, title=f"Order {k}: {4**k} cells"
+                ),
+            )
+            compare(
+                "modes",
+                ["line", "fill"],
+                lambda ax, m: hp.plot_curve(
+                    0,
+                    order=4,
+                    mode=m,
+                    color=blue if m == "line" else None,
+                    cmap="cividis",
+                    ax=ax,
+                    title=m.capitalize(),
+                ),
+            )
+            compare(
+                "shapes",
+                [(10, 10), (15, 16), (16, 15)],
+                lambda ax, s: hp.plot_curve(
+                    0, shape=s, color=blue, ax=ax, title=f"{s[0]} x {s[1]}"
+                ),
+            )
+            # All child paths use actual coordinates; colors identify the kernel type.
+            fig, axes = plt.subplots(1, 3, figsize=(12.8, 4.7))
+            for ax, c in zip(axes, [1, 6, 12], strict=True):
+                pts = hp.curves.points(c, order=3)
+                info = hp.curves.info(c)
+                hp.plot_curve(
+                    c,
+                    order=3,
+                    color=edge,
+                    linewidth=1,
+                    ax=ax,
+                    endpoints=False,
+                    title=f"{info['name']} ({c})",
+                )
+                # The construction uses quadrants BL, TL, TR, BR.
+                origins = [(0, 0), (0, 4), (4, 4), (4, 0)]
+                for q, ((x, y), part) in enumerate(zip(origins, np.split(pts, 4), strict=True)):
+                    ax.add_patch(
+                        Rectangle(
+                            (x - 0.4, y - 0.4), 3.8, 3.8, facecolor="none", edgecolor=edge, lw=0.6
+                        )
+                    )
+                    # Metadata's rule string identifies each quadrant's source.
+                    import re
 
-    y, x = np.mgrid[0:32, 0:32]
-    rgb = np.stack((x / 31, y / 31, 0.5 + 0.5 * np.sin((x + y) / 5)), axis=-1)
-    sequence = hp.data.from_grid(rgb, curve=0)
-    permuted = hp.data.to_grid(sequence, curve=12, shape=rgb.shape)
-    restored = hp.data.to_grid(sequence, curve=0, shape=rgb.shape)
-    np.testing.assert_array_equal(restored, rgb)
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-    for ax, img, title in zip(
-        axes,
-        [rgb, restored, permuted],
-        ["Original RGB image", "Same curve / exact recovery", "Write with curve 12 / reordered"],
-        strict=True,
-    ):
-        ax.imshow(img, origin="lower")
-        ax.set_title(title, fontsize=10)
-        ax.set_axis_off()
-    fig.tight_layout()
-    save("rgb_roundtrip", fig)
+                    kernels = [int(v) for v in re.findall(r"(\d+)H", info["rule"].split("=")[1])]
+                    ax.plot(part[:, 0], part[:, 1], color=kernel_colors[kernels[q]], lw=2.1)
+                handles = [
+                    Patch(color=kernel_colors[k], label=f"Kernel {k}: {hp.curves.info(k)['name']}")
+                    for k in info["kernels"]
+                ]
+                ax.legend(
+                    handles=handles,
+                    loc="upper center",
+                    bbox_to_anchor=(0.5, -0.03),
+                    frameon=False,
+                    fontsize=9,
+                )
+            fig.tight_layout()
+            save_parts(fig, ["classification-1", "classification-6", "classification-12"])
+            save("classification", fig)
+            # Mapping examples use a ramp so visit order is visible without an analysis transform.
+            for name, c in [("data", 0), ("moore", 1)]:
+                save(
+                    name,
+                    hp.plot(
+                        np.arange(256), curve=c, cmap="cividis", title=f"Visit order, curve {c}"
+                    ),
+                )
+            compare(
+                "curves_signal",
+                [0, 1, 12, 24],
+                lambda ax, c: hp.plot(
+                    np.arange(256),
+                    curve=c,
+                    cmap="cividis",
+                    colorbar=False,
+                    ax=ax,
+                    title=f"Curve {c}: values 0-255",
+                ),
+                columns=2,
+            )
+            compare(
+                "fitting",
+                ["pad", "square", "truncate"],
+                lambda ax, f: hp.plot(
+                    np.arange(900),
+                    fit=f,
+                    cmap="cividis",
+                    vmin=0,
+                    vmax=899,
+                    colorbar=False,
+                    ax=ax,
+                    title=(
+                        f"{f}: "
+                        f"{hp.data.to_grid(np.arange(900), fit=f).shape[0]} x "
+                        f"{hp.data.to_grid(np.arange(900), fit=f).shape[1]}"
+                    ),
+                ),
+            )
+            compare(
+                "colors",
+                ["cividis", "RdBu_r", ["#244b72", "#f4f3ed", "#a94835"]],
+                lambda ax, cm: hp.plot(
+                    signed,
+                    cmap=cm,
+                    vmin=-1.4,
+                    vmax=1.4,
+                    colorbar=False,
+                    ax=ax,
+                    title=cm if isinstance(cm, str) else "Custom diverging gradient",
+                ),
+            )
+            positive = np.exp(3 * np.sin(t / 37))
+            compare(
+                "normalization",
+                [False, True],
+                lambda ax, log: hp.plot(
+                    positive,
+                    cmap="inferno",
+                    norm=LogNorm(vmin=np.exp(-3), vmax=np.exp(3)) if log else None,
+                    ax=ax,
+                    title="Logarithmic normalization" if log else "Linear normalization",
+                ),
+            )
+            missing = signed.copy()
+            missing[300:700] = np.nan
+            save("missing", hp.plot(missing, cmap="RdBu_r", title="Missing samples 300:700"))
+            # Same generator, seed, length and granularity as examples/readme_figures.py.
+            compare(
+                "granularity",
+                [1, 4],
+                lambda ax, g: hp.plot(
+                    regions,
+                    granularity=g,
+                    cmap="gray",
+                    vmin=0,
+                    vmax=1,
+                    colorbar=False,
+                    ax=ax,
+                    title=f"Granularity {g}",
+                ),
+            )
+            compare(
+                "granularities",
+                [1, 4, 12],
+                lambda ax, g: hp.plot(
+                    regions,
+                    granularity=g,
+                    cmap="gray",
+                    vmin=0,
+                    vmax=1,
+                    colorbar=False,
+                    ax=ax,
+                    title=f"Granularity {g}",
+                ),
+            )
+            fig, ax = plt.subplots(figsize=(10, 2.8))
+            ax.step(
+                np.arange(72),
+                np.tile([1, 0, 0, 1], 18),
+                where="mid",
+                color=blue,
+                label="Period 4",
+                lw=1,
+            )
+            ax.step(
+                np.arange(72),
+                np.tile([1, 1, 0, 1, 0, 0], 12) + 1.5,
+                where="mid",
+                color=orange,
+                label="Period 6 (offset +1.5)",
+                lw=1,
+            )
+            ax.set(xlabel="Sequence index", yticks=[0, 0.5, 1, 1.5, 2, 2.5])
+            ax.legend(frameon=False, ncols=2, fontsize=9)
+            fig.tight_layout()
+            save("signal", fig)
+            fig, axes = plt.subplots(2, 1, figsize=(10, 4), sharex=True)
+            for ax, p in zip(axes, [[1, 0, 0, 1], [1, 1, 0, 1, 0, 0]], strict=True):
+                v = np.tile(p, 24)[:72]
+                ax.step(np.arange(72), v, where="mid", color=edge, lw=1, label="Original")
+                ax.step(
+                    np.arange(72),
+                    hp.data.granulate(v, 4),
+                    where="mid",
+                    color=blue if len(p) == 4 else orange,
+                    lw=2,
+                    label="Granularity 4",
+                )
+                ax.set(ylim=(-0.1, 1.1), ylabel=f"Period {len(p)}")
+            axes[0].legend(frameon=False, ncols=2, fontsize=9)
+            axes[1].set_xlabel("Sequence index")
+            fig.tight_layout()
+            save("block_means", fig)
 
-    fig, ax = plt.subplots(figsize=(6, 2.8))
-    ax.plot(sequence[:150], color="#147d86", lw=1)
-    ax.set(
-        xlabel="Flattened value index (R, G, B per pixel)",
-        ylabel="Channel value",
-        title="The image read along curve 0",
-    )
-    fig.tight_layout()
-    save("rgb_sequence", fig)
-    missing = values.copy()
-    missing[300:700] = np.nan
-    save("missing", hp.plot(missing, title="Missing sequence interval / transparent cells"))
-    compare(
-        "labels",
-        [0, 12],
-        lambda ax, c: (
-            ax.imshow(hp.curves.label_map(c, order=3), origin="lower", cmap="viridis"),
-            ax.set_title(f"Visit indices / curve {c}"),
-            ax.set_axis_off(),
-        ),
-    )
+            def fft(ax, curve=0, window=True, cmap="gray_r"):
+                lo, hi = np.percentile(hp.data.fourier(tm, curve=curve, window=window), [2, 99.5])
+                hp.plot(
+                    tm,
+                    curve=curve,
+                    fourier=True,
+                    window=window,
+                    cmap=cmap,
+                    vmin=lo,
+                    vmax=hi,
+                    colorbar=False,
+                    ax=ax,
+                    title=f"2-D FFT, curve {curve}" if window else "2-D FFT, no window",
+                )
 
-    # A wide, transparent artwork for the landing page, using the actual path.
-    fig, ax = plt.subplots(figsize=(7, 7))
-    hp.plot_curve(
-        0,
-        order=4,
-        ax=ax,
-        cmap=LinearSegmentedColormap.from_list("hero", ["#118c91", "#7fd9ba", "#d99c43"]),
-        linewidth=2.3,
-        endpoints=False,
-        title="",
-    )
-    fig.patch.set_alpha(0)
-    ax.patch.set_alpha(0)
-    fig.savefig(output / "hero.svg", transparent=True, bbox_inches="tight", pad_inches=0)
-    plt.close(fig)
+            fig, axes = plt.subplots(1, 2, figsize=(10.2, 5))
+            hp.plot(
+                tm, cmap="gray", colorbar=False, ax=axes[0], title="Thue-Morse: 1,048,576 samples"
+            )
+            fft(axes[1])
+            fig.tight_layout()
+            save_parts(fig, ["fourier-input", "fourier-spectrum"])
+            save("fourier", fig, dpi=200)
+            compare("windows", [False, True], lambda ax, w: fft(ax, window=w))
+            compare("spectra", [0, 12, 24], lambda ax, c: fft(ax, curve=c, cmap="magma"))
+            # A shared log scale shows small distances and larger quadrant jumps.
+            fields = [hp.curves.difference_map(c, order=5) for c in [0, 1, 12, 24]]
+            vmax = max(float(f.max()) for f in fields)
+            compare(
+                "locality",
+                [0, 1, 12, 24],
+                lambda ax, c: hp.plot(
+                    np.arange(1024),
+                    curve=c,
+                    difference=True,
+                    cmap="inferno",
+                    norm=LogNorm(vmin=1, vmax=vmax),
+                    ax=ax,
+                    colorbar=True,
+                    title=f"Curve {c}",
+                ),
+                columns=2,
+            )
+            save(
+                "difference",
+                hp.plot(
+                    np.arange(1024),
+                    difference=True,
+                    cmap="inferno",
+                    norm=LogNorm(vmin=1, vmax=vmax),
+                    title="Mean neighbour visit-index distance",
+                ),
+            )
+            compare(
+                "labels",
+                [0, 12],
+                lambda ax, c: hp.plot(
+                    np.arange(64), curve=c, cmap="cividis", ax=ax, title=f"Visit indices, curve {c}"
+                ),
+            )
+            y, x = np.mgrid[0:32, 0:32]
+            rgb = np.stack((x / 31, y / 31, 0.5 + 0.5 * np.sin((x + y) / 5)), axis=-1)
+            seq = hp.data.from_grid(rgb, curve=0)
+            reconstructed = hp.data.to_grid(seq, curve=0, shape=rgb.shape)
+            permuted = hp.data.to_grid(seq, curve=12, shape=rgb.shape)
+            np.testing.assert_array_equal(rgb, reconstructed)
+            fig, axes = plt.subplots(1, 3, figsize=(12.5, 4.1))
+            for ax, img, title in zip(
+                axes,
+                [rgb, reconstructed, permuted],
+                ["Input RGB image", "Curve 0: exact reconstruction", "Curve 12: reordered pixels"],
+                strict=True,
+            ):
+                ax.imshow(img, origin="lower")
+                ax.set_title(title, fontsize=10)
+                ax.set_axis_off()
+            fig.tight_layout()
+            save("rgb_roundtrip", fig)
+            fig, ax = plt.subplots(figsize=(8, 2.4))
+            ax.plot(seq[:150], color=blue, lw=1)
+            ax.set(xlabel="Flattened component index (R, G, B per pixel)", ylabel="Value")
+            fig.tight_layout()
+            save("rgb_sequence", fig)
+
+    for dark in (False, True):
+        render_theme(dark)
 
 
 if __name__ == "__main__":

@@ -40,6 +40,10 @@ def check_html():
                 target /= "index.html"
             if not target.exists():
                 raise AssertionError(f"Missing local target: {path.name} -> {target}")
+            if node.name == "img" and "generated" in target.parts and target.suffix == ".png":
+                alternate = target.with_name(target.stem + "-dark.png")
+                if not alternate.exists():
+                    raise AssertionError(f"Missing dark-theme figure: {alternate}")
             if (
                 address.fragment
                 and target in pages

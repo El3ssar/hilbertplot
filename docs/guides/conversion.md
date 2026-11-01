@@ -67,6 +67,8 @@ Power-of-two squares work with all forty curves. Arbitrary squares and quasisqua
 with curves **0, 3, 4, 5, 24, 29, 30, 31**. General rectangles are unsupported and raise an error.
 No pixels are silently cropped, skipped, or assigned a different curve.
 
+![RGB input, exact reconstruction, and rearrangement using a different curve](../_static/generated/rgb_roundtrip.png)
+
 ## Reorder with a different curve
 
 ```python

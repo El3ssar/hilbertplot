@@ -1,6 +1,6 @@
 # Catalog, coordinates and indexing
 
-## Find a curve without creating objects
+## Catalog queries
 
 `hp.curves.info()` returns a dictionary. Every selection below returns a list of those
 dictionaries, in index order, ready to pass to `hp.gallery()`.
@@ -72,7 +72,7 @@ for index, (x, y) in enumerate(points):
 `hp.curves.difference_map()` compares these labels at spatially neighbouring cells.
 [Its definition is in the transform guide](transforms.md#difference-where-spatial-neighbours-are-far-apart-in-sequence-order).
 
-## Jump to one cell, even at a very large order
+## Direct indexing
 
 ```python
 index = 10**18

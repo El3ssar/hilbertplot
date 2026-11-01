@@ -66,4 +66,4 @@ for curve in [0, 1, 12]:
 `to_grid()` / `from_grid()` preserve dtype and masks. `plot()` converts real samples to
 floating point; color rendering is not an archival encoding of the original values.
 Averaging, truncation, Fourier preprocessing and color normalization each have a different
-meaning. [Conversion guarantees →](conversion.md) · [Transform details →](transforms.md)
+meaning. [Conversion guarantees](conversion.md) · [Transform details](transforms.md)

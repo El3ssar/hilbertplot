@@ -24,7 +24,7 @@ Notebook display behavior depends on the selected Matplotlib backend.
 
 No. `fit="square"` uses side `ceil(sqrt(N))`, with padding if needed. It requires one of the
 eight generalizing curves. `fit="pad"` selects an enclosing power-of-two square.
-`fit="truncate"` explicitly allows dropping the tail. [Examples →](guides/fitting.md)
+`fit="truncate"` explicitly allows dropping the tail. [Examples](guides/fitting.md)
 
 ## Can I use a general rectangle?
 
@@ -49,7 +49,7 @@ padding before inverting a permutation created by using different curves.
 It is the **mapped image's 2-D FFT magnitude**. It is neither the original sequence's 1-D
 spectrum nor squared power. Curve choice, fitting, missing-value fill, mean subtraction and
 windowing affect it. Windowing changes amplitudes and has no gain correction; a two-cell
-Hann axis is all zeros. [Exact steps →](guides/transforms.md)
+Hann axis is all zeros. [Exact steps](guides/transforms.md)
 
 ## Why does the difference map ignore my values?
 

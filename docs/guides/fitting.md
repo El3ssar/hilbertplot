@@ -29,6 +29,8 @@ hp.plot(values, curve=0, fit="square")
 hp.plot(values, fit="truncate")
 ```
 
+![Pad, square and truncate applied to nine hundred values on a common color scale](../_static/generated/fitting.png)
+
 ## Fixed size
 
 `order=` fixes a power-of-two grid. An order that is too small raises unless truncation is explicit.
