@@ -34,20 +34,17 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization",
     "Typing :: Typed",
 ]
-dependencies = ["numpy>=1.21"]
+dependencies = ["numpy>=1.21", "matplotlib>=3.5"]
 
 [project.optional-dependencies]
-plot = ["matplotlib>=3.5"]
 docs = [
-    "hilbertplot[plot]",
     "sphinx>=7.4,<9",
     "furo>=2024.8.6",
     "myst-parser>=3,<5",
     "sphinx-copybutton>=0.5,<1",
     "beautifulsoup4>=4.12,<5",
 ]
-# dev composes [plot] rather than restating matplotlib, so the two cannot drift.
-dev = ["hilbertplot[plot]", "pytest>=7.0", "ruff==0.15.13"]
+dev = ["pytest>=7.0", "ruff==0.15.13"]
 
 [project.urls]
 Homepage = "https://github.com/El3ssar/hilbertplot"

@@ -130,7 +130,6 @@ def test_input_policy_is_explicit_and_handles_integer_masks():
 
 
 def test_missing_only_plot_fails_cleanly_without_a_figure():
-    pytest.importorskip("matplotlib")
     import matplotlib.pyplot as plt
 
     before = plt.get_fignums()
@@ -142,7 +141,6 @@ def test_missing_only_plot_fails_cleanly_without_a_figure():
 @pytest.mark.parametrize("transform", ["data", "fourier", "difference"])
 @pytest.mark.parametrize("index", range(40))
 def test_one_transformed_image_matches_the_numeric_result(index, transform):
-    pytest.importorskip("matplotlib")
     data = np.sin(np.arange(100.0))
     kwargs = {} if transform == "data" else {transform: True}
     fig = hp.plot(data, curve=index, colorbar=False, **kwargs)
@@ -159,7 +157,6 @@ def test_one_transformed_image_matches_the_numeric_result(index, transform):
 
 
 def test_conflicting_transforms_fail_before_data_or_figure_creation():
-    pytest.importorskip("matplotlib")
     import matplotlib.pyplot as plt
 
     before = plt.get_fignums()
@@ -170,7 +167,6 @@ def test_conflicting_transforms_fail_before_data_or_figure_creation():
 
 @pytest.mark.parametrize("name", ["fourier", "difference"])
 def test_boolean_flags_accept_zero_and_one_but_reject_other_values(name):
-    pytest.importorskip("matplotlib")
     hp.plot([1, 2, 3, 4], **{name: 0})
     hp.plot([1, 2, 3, 4], **{name: 1})
     for bad in ("yes", 2, [], None, 0.5):
@@ -179,7 +175,6 @@ def test_boolean_flags_accept_zero_and_one_but_reject_other_values(name):
 
 
 def test_plain_and_fourier_figures_can_use_axes_and_save(tmp_path, monkeypatch):
-    pytest.importorskip("matplotlib")
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
 
@@ -200,7 +195,6 @@ def test_plain_and_fourier_figures_can_use_axes_and_save(tmp_path, monkeypatch):
 
 
 def test_plotting_options_match_arrays_and_support_imshow_overrides():
-    pytest.importorskip("matplotlib")
     data = np.arange(100.0)
     fig = hp.plot(
         data, granularity=7, fit="square", colorbar=False, origin="upper", interpolation="bilinear"
@@ -218,7 +212,7 @@ def test_plotting_options_match_arrays_and_support_imshow_overrides():
     )
 
 
-def test_import_and_numeric_operations_do_not_need_matplotlib():
+def test_lazy_backend_loading_and_missing_dependency_diagnostic():
     script = """
 import sys, numpy as np
 class NoMatplotlib:
@@ -236,8 +230,9 @@ assert hp.curves.info(12)['index'] == 12
 try:
     hp.plot([1, 2, 3, 4])
 except ModuleNotFoundError as exc:
-    assert 'matplotlib' in str(exc)
+    assert "required dependency 'matplotlib'" in str(exc)
+    assert 'pip install --upgrade --force-reinstall hilbertplot' in str(exc)
 else:
-    raise AssertionError('plot should explain the missing plotting extra')
+    raise AssertionError('plot should explain how to repair the missing required dependency')
 """
     subprocess.run([sys.executable, "-c", script], check=True, capture_output=True, text=True)

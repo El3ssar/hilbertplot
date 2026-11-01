@@ -13,7 +13,7 @@
 </div>
 <div class="landing-install">
 <div class="install-label"><span>Install with pip</span><a href="installation.html">Installation options</a></div>
-<div class="install-line"><code id="install-command">pip install "hilbertplot[plot]"</code><button class="install-copy" type="button" aria-label="Copy installation command">Copy</button></div>
+<div class="install-line"><code id="install-command">pip install hilbertplot</code><button class="install-copy" type="button" aria-label="Copy installation command">Copy</button></div>
 </div>
 <p class="landing-packages"><a href="https://pypi.org/project/hilbertplot/">PyPI package</a><span aria-hidden="true">·</span><a href="https://doi.org/10.5281/zenodo.23858267">Zenodo DOI</a><span aria-hidden="true">·</span><span>Python ≥ 3.10</span></p>
 </div>

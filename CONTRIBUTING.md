@@ -85,13 +85,9 @@ uv run ruff check --fix .
 uv run ruff format .
 ```
 
-CI runs three more jobs you can reproduce locally when you touch the relevant area:
+CI runs two more jobs you can reproduce locally when you touch the relevant area:
 
 ```bash
-# matplotlib is an optional extra; the numpy-only path must keep working.
-uv venv /tmp/nomp && VIRTUAL_ENV=/tmp/nomp uv pip install . pytest
-VIRTUAL_ENV=/tmp/nomp uv run --no-project pytest
-
 # `python -O` strips asserts, so shipped-data validation must use `raise`.
 uv run python -O -m pytest
 

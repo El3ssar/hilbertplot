@@ -17,7 +17,7 @@ from .catalog import SPECS, CurveSpec, Family, spec_by_index
 from .generation import curve_word
 
 if TYPE_CHECKING:
-    # Annotation-only imports: matplotlib is an optional extra and must stay out of the
+    # Annotation-only imports: keep matplotlib out of the
     # import path, and HilbertPlot would be a cycle.
     from matplotlib.axes import Axes
 
@@ -741,7 +741,7 @@ class Curve:
         """Render inline in Jupyter, so ``hilbertplot.curves.info(0)`` in a cell shows the curve.
 
         Returns ``None`` when matplotlib is not installed, which makes the notebook fall
-        back to :meth:`__repr__` instead of raising -- matplotlib is an optional extra.
+        back to :meth:`__repr__` if the plotting dependency is damaged.
 
         Returns
         -------

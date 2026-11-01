@@ -1,4 +1,4 @@
-"""Array operations on numeric sequences; these functions do not need matplotlib.
+"""Array operations on numeric sequences, without rendering figures.
 
 >>> from hilbertplot import data
 >>> data.to_grid(range(100)).shape

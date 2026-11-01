@@ -500,6 +500,8 @@ name = "hilbertplot"
 version = "1.0.1"
 source = { editable = "." }
 dependencies = [
+    { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "matplotlib", version = "3.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -507,33 +509,23 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
-    { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "matplotlib", version = "3.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pytest" },
     { name = "ruff" },
 ]
 docs = [
     { name = "beautifulsoup4" },
     { name = "furo" },
-    { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "matplotlib", version = "3.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "myst-parser" },
     { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "sphinx", version = "8.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sphinx-copybutton" },
-]
-plot = [
-    { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "matplotlib", version = "3.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4", marker = "extra == 'docs'", specifier = ">=4.12,<5" },
     { name = "furo", marker = "extra == 'docs'", specifier = ">=2024.8.6" },
-    { name = "hilbertplot", extras = ["plot"], marker = "extra == 'dev'" },
-    { name = "hilbertplot", extras = ["plot"], marker = "extra == 'docs'" },
-    { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.5" },
+    { name = "matplotlib", specifier = ">=3.5" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = ">=3,<5" },
     { name = "numpy", specifier = ">=1.21" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
@@ -541,7 +533,7 @@ requires-dist = [
     { name = "sphinx", marker = "extra == 'docs'", specifier = ">=7.4,<9" },
     { name = "sphinx-copybutton", marker = "extra == 'docs'", specifier = ">=0.5,<1" },
 ]
-provides-extras = ["plot", "docs", "dev"]
+provides-extras = ["docs", "dev"]
 
 [[package]]
 name = "idna"

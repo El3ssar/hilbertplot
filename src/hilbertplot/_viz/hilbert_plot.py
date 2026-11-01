@@ -646,7 +646,7 @@ class HilbertPlot:
         """Render inline in Jupyter, so a bare ``plot`` in a cell shows the image.
 
         Returns ``None`` when matplotlib is not installed, so the notebook falls back to
-        :meth:`__repr__` rather than raising -- matplotlib is an optional extra.
+        :meth:`__repr__` if the plotting dependency is damaged.
 
         Returns
         -------

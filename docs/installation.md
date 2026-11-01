@@ -3,13 +3,16 @@
 Python 3.10 or newer is required.
 
 ```bash
-pip install "hilbertplot[plot]"
+pip install hilbertplot
 ```
 
-For coordinate calculations and array conversion without rendering:
+This installs NumPy and Matplotlib together with the library. Plotting and numerical
+operations are available from the same installation; no extra is needed.
+
+To update an existing installation:
 
 ```bash
-pip install hilbertplot
+pip install --upgrade hilbertplot
 ```
 
 ## Verify the installation

@@ -44,48 +44,6 @@ jobs:
       - name: Run doctests
         run: uv run pytest --doctest-modules src/hilbertplot
 
-  numpy-only:
-    # matplotlib is an optional extra and the numpy-only path is a documented feature, so
-    # it needs its own job -- the matrix above always has matplotlib installed.
-    name: numpy-only (no matplotlib)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-
-      - name: Install the project and pytest, but NOT matplotlib
-        run: |
-          uv venv
-          uv pip install . pytest
-
-      - name: Confirm matplotlib really is absent
-        run: |
-          if uv run python -c "import matplotlib" 2>/dev/null; then
-            echo "matplotlib is installed; this job would not be testing anything"; exit 1
-          fi
-
-      - name: Every compute path works, every render path explains the extra
-        run: uv run pytest tests/test_robustness.py -k "matplotlib or compute_path" -v
-
-      - name: Import and use the library with numpy alone
-        run: |
-          uv run python -c "
-          import numpy as np, hilbertplot as hp
-          assert hp.curves.points(0, 4).shape == (256, 2)
-          assert hp.curves.grid(10).shape == (100, 2)
-          assert hp.curves.index_to_xy(5, 2) == (0, 3)
-          assert hp.data.to_grid(np.arange(100), fit='square').shape == (10, 10)
-          assert hp.data.fourier(np.arange(100), fit='square').shape == (10, 10)
-          assert hp.data.from_grid(np.zeros((8, 8))).shape == (64,)
-          assert hp.curves.difference_map(order=3).shape == (8, 8)
-          print('numpy-only path OK')
-          "
-
   optimized:
     # `python -O` strips assertions. The catalog self-check must still run, so it uses
     # `raise` rather than `assert` -- this job is what keeps that true.
@@ -156,9 +114,18 @@ jobs:
           uv venv /tmp/wheeltest
           VIRTUAL_ENV=/tmp/wheeltest uv pip install dist/*.whl
           VIRTUAL_ENV=/tmp/wheeltest uv run --no-project python -c "
-          import hilbertplot, importlib.metadata as md
+          import hilbertplot, matplotlib, importlib.metadata as md
           print('installed', hilbertplot.__version__, 'exports', len(hilbertplot.__all__), 'names')
           assert hilbertplot.curves.points('Moore', 3).shape == (64, 2)
+          # A plain wheel install must include everything needed to render.
+          matplotlib.use('Agg')
+          import io
+          import matplotlib.pyplot as plt
+          fig = hilbertplot.plot([1, 2, 3, 4])
+          output = io.BytesIO()
+          fig.savefig(output, format='png')
+          assert output.getvalue().startswith(b'\x89PNG')
+          plt.close(fig)
           # __version__ and the distribution version are two literals kept in sync only by
           # python-semantic-release stamping both; this is what catches them drifting.
           assert hilbertplot.__version__ == md.version('hilbertplot'), (

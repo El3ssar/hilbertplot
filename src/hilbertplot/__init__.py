@@ -12,7 +12,8 @@ Use ``fig.savefig(path)`` to save and ``plt.show()`` in scripts. Fourier and
 difference maps are mutually exclusive, single-image transformations.
 
 ``curves`` holds the catalog and geometry, ``data`` the numeric operations,
-and ``config`` the optional resource controls. Numeric functions need only numpy.
+and ``config`` the optional resource controls. Numeric operations do not initialize
+the plotting backend.
 Metadata uses ordinary dicts/lists;
 all custom curve and plot classes are implementation details.
 

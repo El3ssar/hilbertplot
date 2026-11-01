@@ -1,6 +1,6 @@
 # Array conversion and transforms
 
-All functions in `hp.data` work without Matplotlib. Conversion rearranges numeric values;
+Functions in `hp.data` return numeric arrays without drawing figures. Conversion rearranges numeric values;
 explicit granularity or Fourier transforms change them.
 
 ```{eval-rst}

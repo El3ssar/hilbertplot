@@ -1,8 +1,8 @@
 """Matplotlib rendering, kept behind the :class:`~hilbertplot._core.curve.Curve` methods.
 
 Nothing else in the package imports matplotlib, and it is imported lazily only when a
-plot is actually drawn, so the maths runs with numpy alone.  Users never call into
-this module directly -- they use ``curve.draw(order)`` / ``curve.show(order)`` /
+plot is actually drawn, keeping numerical calls independent of backend initialization.
+Users never call this module directly -- they use ``curve.draw(order)`` / ``curve.show(order)`` /
 ``curve.save(path, order)`` and :func:`gallery`.
 
 Two render modes, chosen automatically by order:
@@ -59,8 +59,8 @@ def pyplot():
         import matplotlib.pyplot as plt
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError(
-            "Plotting needs matplotlib. Install it with "
-            "'uv pip install hilbertplot[plot]' (or 'pip install matplotlib')."
+            "Could not import the required dependency 'matplotlib'. "
+            "Repair the installation with 'pip install --upgrade --force-reinstall hilbertplot'."
         ) from exc
     return plt
 

@@ -18,8 +18,10 @@ optional cache and allocation controls.
 ## Install
 
 ```bash
-pip install "hilbertplot[plot]"   # omit [plot] for numpy-only operations
+pip install hilbertplot
 ```
+
+NumPy and Matplotlib are installed automatically.
 
 ## Plot your data
 
