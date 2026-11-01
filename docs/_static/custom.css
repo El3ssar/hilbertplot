@@ -41,3 +41,6 @@ table.docutils td, table.docutils th { padding: .6rem .75rem; }
 body { --color-highlight-on-target: var(--doc-surface); }
 article table code.literal { white-space: normal; overflow-wrap: anywhere; }
 .table-wrapper { overflow-x: auto; max-width: 100%; }
+
+body[data-theme="dark"], body[data-theme="light"], body[data-theme="auto"] { --color-highlight-on-target: var(--doc-surface); }
+.highlight { background: var(--doc-surface); }

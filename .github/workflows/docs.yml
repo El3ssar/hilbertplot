@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/**'
       - 'src/**'
+      - 'examples/readme_figures.py'
       - 'scripts/docs_gallery.py'
       - 'scripts/check_docs.py'
       - 'pyproject.toml'
