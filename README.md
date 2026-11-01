@@ -18,8 +18,10 @@ optional cache and allocation controls.
 ## Install
 
 ```bash
-pip install "hilbertplot[plot]"   # omit [plot] for numpy-only operations
+pip install hilbertplot
 ```
+
+NumPy and Matplotlib are installed automatically.
 
 ## Plot your data
 
@@ -200,9 +202,15 @@ MPLBACKEND=Agg python examples/try_api.py --save-only
 
 Figures are saved in `examples/output/try_api/`.
 
-## Local API migration
+## Documentation
 
-This working-tree redesign replaces the object-based 0.2.0 interface:
+Read the [documentation](https://el3ssar.github.io/hilbertplot/) for guides,
+the plot gallery, and the complete function reference. The source is in
+[docs/](docs/); see [CONTRIBUTING.md](CONTRIBUTING.md#documentation) to preview it locally.
+
+## Migrating from 0.2
+
+Version 1.0 replaces the object-based 0.2.0 interface:
 
 | Previous | New |
 | --- | --- |
@@ -216,7 +224,7 @@ This working-tree redesign replaces the object-based 0.2.0 interface:
 
 The old `Curve`, `CurveList`, `HilbertPlot`, and `hilbert_plot` exports are removed.
 `difference=True` now renders the complete difference map. Rendering defaults to
-power-of-two padding. These are intentional interface changes under local review.
+power-of-two padding. See the documentation migration guide for these intentional interface changes.
 
 ## Citation
 

@@ -85,19 +85,36 @@ uv run ruff check --fix .
 uv run ruff format .
 ```
 
-CI runs three more jobs you can reproduce locally when you touch the relevant area:
+CI runs two more jobs you can reproduce locally when you touch the relevant area:
 
 ```bash
-# matplotlib is an optional extra; the numpy-only path must keep working.
-uv venv /tmp/nomp && VIRTUAL_ENV=/tmp/nomp uv pip install . pytest
-VIRTUAL_ENV=/tmp/nomp uv run --no-project pytest
-
 # `python -O` strips asserts, so shipped-data validation must use `raise`.
 uv run python -O -m pytest
 
 # The built artifacts must contain the package and nothing else.
 uv build && uvx twine check dist/*
 ```
+
+## Documentation
+
+Build the guides, API reference and generated gallery locally:
+
+```bash
+uv sync --inexact --extra dev --extra docs
+uv run --no-sync python scripts/check_docs.py
+uv run --no-sync sphinx-build -W --keep-going -b html docs docs/_build/html
+uv run --no-sync python scripts/check_docs.py --html
+python -m http.server 8000 --directory docs/_build/html
+```
+
+Open `http://localhost:8000`. The documentation check executes Python examples and
+checks coverage of public functions. The strict Sphinx build rejects warnings.
+Generated HTML and gallery images are ignored by Git.
+
+The Documentation workflow validates pull requests and deploys `main` after the
+Release workflow completes. Before the first deployment, a repository maintainer
+must select **GitHub Actions** under **Settings → Pages → Build and deployment**.
+The intended URL is `https://el3ssar.github.io/hilbertplot/`.
 
 ## What the tests are protecting
 

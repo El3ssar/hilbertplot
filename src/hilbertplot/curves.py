@@ -50,4 +50,5 @@ __all__ = [
 
 
 def __dir__() -> list[str]:
+    """Return only the supported public names for interactive completion."""
     return sorted(__all__)

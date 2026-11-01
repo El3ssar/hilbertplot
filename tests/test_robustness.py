@@ -40,7 +40,6 @@ def test_difference_map_of_a_single_cell_is_zero():
 
 
 def test_difference_map_survives_a_degenerate_grid():
-    pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         ax = make_plot(0, [1.0]).draw(difference=True)
@@ -212,7 +211,7 @@ def test_unroll_round_trips_at_arbitrary_sides_for_every_generalizing_curve(inde
 
 
 # --------------------------------------------------------------------------
-# The numpy-only path (matplotlib is an optional extra)
+# Lazy backend imports and damaged-installation diagnostics
 # --------------------------------------------------------------------------
 def test_every_render_entry_point_explains_how_to_install_matplotlib(monkeypatch):
     import builtins
@@ -234,11 +233,11 @@ def test_every_render_entry_point_explains_how_to_install_matplotlib(monkeypatch
         lambda: draw_gallery(curves.proper()),
     ]
     for call in entry_points:
-        with pytest.raises(ModuleNotFoundError, match="matplotlib"):
+        with pytest.raises(ModuleNotFoundError, match="required dependency 'matplotlib'"):
             call()
 
 
-def test_the_whole_compute_path_works_without_matplotlib(monkeypatch):
+def test_numerical_operations_do_not_initialize_matplotlib(monkeypatch):
     import builtins
 
     real_import = builtins.__import__
@@ -343,7 +342,7 @@ def _hint_failure(name: str, obj: object) -> str | None:
 
 
 def test_importing_the_package_does_not_import_matplotlib():
-    """matplotlib is an optional extra; the numpy-only path must stay genuinely numpy-only."""
+    """Importing the package must not eagerly initialize the plotting backend."""
     import subprocess
     import sys
 
@@ -365,7 +364,6 @@ def test_importing_the_package_does_not_import_matplotlib():
 # --------------------------------------------------------------------------
 def test_fourier_knobs_are_reachable_from_draw():
     """`fourier()` grew `remove_dc`; `draw(fourier=True)` must expose the same knob."""
-    pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
     plot = make_plot(0, np.tile([1.0, 0.0], 512))
     with_dc = plot.draw(fourier=True, remove_dc=False).images[-1].get_array()
     without = plot.draw(fourier=True, remove_dc=True).images[-1].get_array()
@@ -374,19 +372,16 @@ def test_fourier_knobs_are_reachable_from_draw():
 
 def test_a_typo_of_a_draw_parameter_is_caught_not_forwarded_to_matplotlib():
     """Otherwise it surfaces as `AxesImage.set() got an unexpected keyword argument`."""
-    pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
     with pytest.raises(TypeError, match="did you mean 'granularity'"):
         make_plot(0, np.arange(64.0)).draw(granularty=4)
 
 
 def test_genuine_imshow_keywords_still_reach_matplotlib():
-    pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
     ax = make_plot(0, np.arange(64.0)).draw(alpha=0.5, zorder=7)
     assert ax.images[-1].get_alpha() == 0.5
 
 
 def test_curve_show_and_save_forward_ax_like_hilbertplot_does(tmp_path, monkeypatch):
-    pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
     import matplotlib.pyplot as plt
 
     monkeypatch.setattr(plt, "show", lambda *a, **k: None)
@@ -576,7 +571,6 @@ def test_rendering_does_not_copy_the_data_at_granularity_one():
 
 def test_a_rejected_draw_call_leaks_no_figure():
     """Argument checks must run before the figure is created, not after."""
-    pytest.importorskip("matplotlib", reason="rendering needs the [plot] extra")
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
 

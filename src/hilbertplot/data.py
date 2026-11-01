@@ -1,4 +1,4 @@
-"""Array operations on numeric sequences; these functions do not need matplotlib.
+"""Array operations on numeric sequences, without rendering figures.
 
 >>> from hilbertplot import data
 >>> data.to_grid(range(100)).shape
@@ -12,4 +12,5 @@ __all__ = ["fourier", "from_grid", "granulate", "to_grid"]
 
 
 def __dir__() -> list[str]:
+    """Return only the supported public names for interactive completion."""
     return sorted(__all__)

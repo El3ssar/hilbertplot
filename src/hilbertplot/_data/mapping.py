@@ -41,6 +41,16 @@ def order_for(n: int) -> int:
 
     >>> order_for(1024), order_for(1000), order_for(1025)
     (5, 5, 6)
+
+    Parameters
+    ----------
+    n : int
+        Number of samples, or square side in path construction as described above.
+
+    Returns
+    -------
+    int
+        Smallest recursion depth that holds all requested samples.
     """
     if n < 1:
         raise ValueError(f"need at least one value, got n={n}")
@@ -55,6 +65,16 @@ def order_floor(n: int) -> int:
 
     >>> order_floor(1024), order_floor(1000), order_floor(15)
     (5, 4, 1)
+
+    Parameters
+    ----------
+    n : int
+        Number of samples, or square side in path construction as described above.
+
+    Returns
+    -------
+    int
+        Largest recursion depth fitting inside the sample count.
     """
     if n < 1:
         raise ValueError(f"need at least one value, got n={n}")
@@ -76,6 +96,16 @@ def check_fit(fit: str) -> str:
 
     >>> check_fit("square")
     'square'
+
+    Parameters
+    ----------
+    fit : str
+        Sizing policy already selected by the caller: pad, truncate, square or auto.
+
+    Returns
+    -------
+    str
+        The validated fitting policy.
     """
     if fit not in FITS:
         legal = ", ".join(repr(name) for name in FITS)
@@ -89,6 +119,20 @@ def resolve_order(n: int, order: int | None, fit: str) -> int:
     ``fit="pad"`` uses the smallest enclosing grid (``order_for``); ``fit="truncate"``
     uses the largest grid that fits inside the data (``order_floor``).  An explicit
     ``order`` overrides both.
+
+    Parameters
+    ----------
+    n : int
+        Number of samples, or square side in path construction as described above.
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+    fit : str
+        Sizing policy already selected by the caller: pad, truncate, square or auto.
+
+    Returns
+    -------
+    int
+        Resolved power-of-two recursion depth.
     """
     if order is not None:
         if order < 0:
@@ -110,6 +154,16 @@ def check_granularity(granularity: int) -> int:
 
     >>> check_granularity(4)
     4
+
+    Parameters
+    ----------
+    granularity : int
+        Positive number of consecutive samples per averaging block.
+
+    Returns
+    -------
+    int
+        Validated positive block length.
     """
     if isinstance(granularity, bool) or not isinstance(granularity, (int, np.integer)):
         raise TypeError(f"granularity must be an int, got {type(granularity).__name__}")
@@ -120,30 +174,47 @@ def check_granularity(granularity: int) -> int:
 
 
 def granulate(data, granularity: int) -> np.ndarray:
-    """Return the *l-granularity* representation of ``data`` (same length as the input).
-
-    The sequence is cut into non-overlapping blocks of ``granularity`` values (the paper's
-    :math:`l`) and each block is replaced by that many copies of its mean.  A granularity of
-    ``1`` returns the data unchanged -- the "faithful" representation; a trailing short block
-    is averaged over what it has.
+    """Replace each consecutive block by repeated copies of its arithmetic mean.
 
     Parameters
     ----------
     data : array_like
-        The 1-D sequence to coarsen.
+        Real numeric input, flattened to one dimension and converted to float64.
+        Non-finite values propagate through their block means; no values are
+        omitted automatically. Use data.to_grid for mask-aware conversion.
     granularity : int
-        Block length ``>= 1``.  Named to match the ``granularity=`` argument of
-        :meth:`hilbertplot.HilbertPlot.image` and friends.
+        Positive block length. One returns a float64 copy of the flattened
+        input. A final short block is averaged over its available values.
 
     Returns
     -------
-    numpy.ndarray
+    coarse : numpy.ndarray of float64, shape (data.size,)
+        Same number of values, with one mean repeated across each block.
+
+    Raises
+    ------
+    TypeError
+        Block length is not an integer or is bool.
+    ValueError
+        Block length is less than one.
+
+    See Also
+    --------
+    hilbertplot.plot : Use granularity to coarsen while plotting.
+
+    Notes
+    -----
+    This is not decimation: sequence length stays fixed. Averaging is lossy
+    and happens in sequence order before mapping to pixels. For a block B,
+    every output position in B receives sum(data[B]) / len(B). The standalone
+    helper converts via numpy.asarray; masked arrays should be handled with
+    explicit missing-value policy or the mask-aware to_grid pipeline.
 
     Examples
     --------
-    >>> import hilbertplot
-    >>> hilbertplot.data.granulate([0, 2, 10, 0], 2).tolist()
-    [1.0, 1.0, 5.0, 5.0]
+    >>> import hilbertplot as hp
+    >>> hp.data.granulate([0, 2, 10, 14, 7], 2).tolist()
+    [1.0, 1.0, 12.0, 12.0, 7.0]
     """
     granularity = check_granularity(granularity)
     data = np.asarray(data, dtype=float).ravel()
@@ -165,6 +236,16 @@ def square_side(n: int) -> int:
 
     >>> square_side(10000), square_side(1000)
     (100, 32)
+
+    Parameters
+    ----------
+    n : int
+        Number of samples, or square side in path construction as described above.
+
+    Returns
+    -------
+    int
+        Smallest side whose square contains n samples.
     """
     if n < 1:
         raise ValueError(f"need at least one value, got n={n}")
@@ -182,6 +263,22 @@ def scatter(points: np.ndarray, values: np.ndarray, side: int, fill: float = np.
     ``values[i]`` is written to ``points[i]``.  If there are more values than cells
     they are truncated to fit; if fewer, the remaining cells keep ``fill``.  Returned
     array is indexed ``image[y, x]`` (for ``origin="lower"`` display).
+
+    Parameters
+    ----------
+    points : numpy.ndarray
+        Ordered integer (x, y) cells with shape (N, 2).
+    values : numpy.ndarray
+        Sample values in traversal order, with any trailing component axes retained.
+    side : int or None
+        Square side in cells, or None when an order determines it.
+    fill : numeric scalar
+        Value assigned to cells without samples.
+
+    Returns
+    -------
+    numpy.ndarray of float64
+        Square image indexed [y, x], padded or truncated to capacity.
     """
     cap = side * side
     values = np.asarray(values, dtype=float).ravel()
@@ -280,7 +377,18 @@ def label_map(points: np.ndarray, side: int) -> np.ndarray:
 
 
 def _neighbour_counts(side: int) -> np.ndarray:
-    """Return each cell's number of 8-neighbours: 8 inside, 5 on an edge, 3 at a corner."""
+    """Return each cell's number of 8-neighbours: 8 inside, 5 on an edge, 3 at a corner.
+
+    Parameters
+    ----------
+    side : int or None
+        Square side in cells, or None when an order determines it.
+
+    Returns
+    -------
+    numpy.ndarray of float64
+        Square count array for side >= 2; single-cell handling is in difference_map.
+    """
     counts = np.full((side, side), 8.0)
     counts[0, :] = counts[-1, :] = 5.0
     counts[:, 0] = counts[:, -1] = 5.0

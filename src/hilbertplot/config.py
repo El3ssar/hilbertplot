@@ -7,4 +7,5 @@ __all__ = ["cache_info", "cell_limit", "clear_cache", "set_cell_limit"]
 
 
 def __dir__() -> list[str]:
+    """Return only the supported public names for interactive completion."""
     return sorted(__all__)

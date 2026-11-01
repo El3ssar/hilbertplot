@@ -29,7 +29,24 @@ _max_cells = _DEFAULT_MAX_CELLS
 
 
 def cell_limit() -> int:
-    """Return the current ceiling, in cells, on a single materialised curve."""
+    """Return the process-wide ceiling for a materialized curve request.
+
+    Returns
+    -------
+    cells : int
+        Maximum permitted number of cells in one request. The default is
+        2**28; this is a ceiling, not preallocated or reserved memory.
+
+    See Also
+    --------
+    hilbertplot.config.set_cell_limit : Change or restore the guard.
+
+    Notes
+    -----
+    Coordinate pairs alone cost 16 bytes per cell. Temporary arrays, cached
+    strokes, images and rendering can substantially increase peak memory.
+    Direct index_to_xy/xy_to_index calls do not materialize a grid.
+    """
     return _max_cells
 
 
@@ -72,6 +89,18 @@ def _gib(cells: int, bytes_per_cell: int) -> str:
     ``cells`` is an unbounded Python int: at order 525 the true division ``cells * b / 2**30``
     raises ``OverflowError`` instead of producing the helpful message this module exists to
     give.  Above a petabyte the fractional part is meaningless anyway.
+
+    Parameters
+    ----------
+    cells : int
+        Requested number of materialized cells.
+    bytes_per_cell : int
+        Bytes per output element used for the allocation estimate.
+
+    Returns
+    -------
+    str
+        Human-readable binary gigabyte count without large-integer overflow.
     """
     total = cells * bytes_per_cell
     if total >= 2**60:  # >= 1 EiB: print exactly, no float involved
@@ -90,6 +119,20 @@ def check_cells(cells: int, what: str, *, bytes_per_cell: int = BYTES_PER_CELL) 
     intermediates: expect roughly 1.5x for :meth:`~hilbertplot._core.curve.Curve.points` and several
     times that for the map builders, which is why the default ceiling sits well below what
     a machine could actually hold.
+
+    Parameters
+    ----------
+    cells : int
+        Requested number of materialized cells.
+    what : str
+        Description of the allocation request included in an error message.
+    bytes_per_cell : int
+        Bytes per output element used for the allocation estimate.
+
+    Returns
+    -------
+    None
+        Raise ValueError instead if the requested cell count exceeds the guard.
     """
     if cells > _max_cells:
         raise ValueError(

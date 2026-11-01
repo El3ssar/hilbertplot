@@ -14,6 +14,18 @@ from .mapping import check_fit, check_granularity, resolve_order, square_side
 
 
 def _dimensions(shape):
+    """Validate and normalize a positive square/quasisquare spatial shape.
+
+    Parameters
+    ----------
+    shape : tuple of int or None
+        Requested spatial shape; trailing dimensions describe pixel components when supported.
+
+    Returns
+    -------
+    tuple of int
+        Validated row and column counts.
+    """
     if not isinstance(shape, (tuple, list)) or len(shape) != 2:
         raise TypeError("shape must be a (rows, columns) pair of positive integers")
     if any(isinstance(n, bool) or not isinstance(n, (int, np.integer)) for n in shape):
@@ -28,6 +40,20 @@ def _dimensions(shape):
 
 
 def _shape_path(c, shape):
+    """Resolve a connected spatial path and its row and column dimensions.
+
+    Parameters
+    ----------
+    c : Curve
+        Resolved internal construction used to generate the path.
+    shape : tuple of int or None
+        Requested spatial shape; trailing dimensions describe pixel components when supported.
+
+    Returns
+    -------
+    tuple
+        Ordered points followed by row and column counts.
+    """
     from .._core.arbitrary import shape_points
 
     rows, columns = _dimensions(shape)
@@ -35,7 +61,26 @@ def _shape_path(c, shape):
 
 
 def layout(n, curve, shape, order, fit):
-    """Resolve the same traversal for reading and writing, without converting values."""
+    """Resolve the same traversal for reading and writing, without converting values.
+
+    Parameters
+    ----------
+    n : int
+        Number of samples, or square side in path construction as described above.
+    curve : Curve or int or str
+        Internal curve instance, or selector resolved by the caller.
+    shape : tuple of int or None
+        Requested spatial shape; trailing dimensions describe pixel components when supported.
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+    fit : str
+        Sizing policy already selected by the caller: pad, truncate, square or auto.
+
+    Returns
+    -------
+    tuple
+        Ordered points, number of rows and number of columns.
+    """
     check_fit(fit)
     c = lookup(curve)
     if shape is not None:
@@ -65,7 +110,20 @@ def layout(n, curve, shape, order, fit):
 
 
 def _coarsen(values, granularity):
-    """Average records in blocks, keeping channels and missing masks attached."""
+    """Average records in blocks, keeping channels and missing masks attached.
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        Sample values in traversal order, with any trailing component axes retained.
+    granularity : int
+        Positive number of consecutive samples per averaging block.
+
+    Returns
+    -------
+    numpy.ndarray or numpy.ma.MaskedArray
+        Same sample shape with repeated block means and propagated masks.
+    """
     g = check_granularity(granularity)
     if g == 1:
         return values
@@ -91,6 +149,30 @@ def _coarsen(values, granularity):
 
 
 def to_grid(data, *, curve, shape, order, fit, fill, granularity):
+    """Arrange numeric sample records along a supported path without lossy dtype conversion.
+
+    Parameters
+    ----------
+    data : array_like
+        Numeric sample sequence supplied by the caller.
+    curve : Curve or int or str
+        Internal curve instance, or selector resolved by the caller.
+    shape : tuple of int or None
+        Requested spatial shape; trailing dimensions describe pixel components when supported.
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+    fit : str
+        Sizing policy already selected by the caller: pad, truncate, square or auto.
+    fill : numeric scalar
+        Value assigned to cells without samples.
+    granularity : int
+        Positive number of consecutive samples per averaging block.
+
+    Returns
+    -------
+    numpy.ndarray or numpy.ma.MaskedArray
+        Grid with trailing sample axes; padding and input masks are preserved.
+    """
     values = np.asanyarray(data)
     if values.ndim < 1 or len(values) == 0:
         raise ValueError("data is empty or scalar; provide at least one sample")
@@ -148,6 +230,22 @@ def to_grid(data, *, curve, shape, order, fit, fill, granularity):
 
 
 def from_grid(array, *, curve, length):
+    """Gather spatial pixels and flatten their components, retaining dtype and masks.
+
+    Parameters
+    ----------
+    array : numpy.ndarray
+        Array indexed by spatial row then column; trailing axes hold pixel components.
+    curve : Curve or int or str
+        Internal curve instance, or selector resolved by the caller.
+    length : int or None
+        Requested number of flattened output values; None retains all values.
+
+    Returns
+    -------
+    numpy.ndarray or numpy.ma.MaskedArray
+        One-dimensional curve-ordered values, optionally limited to length.
+    """
     values = np.asanyarray(array)
     if values.ndim < 2:
         raise ValueError("expected an array with at least two spatial dimensions")

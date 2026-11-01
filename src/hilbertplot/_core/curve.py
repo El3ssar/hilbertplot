@@ -17,7 +17,7 @@ from .catalog import SPECS, CurveSpec, Family, spec_by_index
 from .generation import curve_word
 
 if TYPE_CHECKING:
-    # Annotation-only imports: matplotlib is an optional extra and must stay out of the
+    # Annotation-only imports: keep matplotlib out of the
     # import path, and HilbertPlot would be a cycle.
     from matplotlib.axes import Axes
 
@@ -62,6 +62,18 @@ def _check_int(value: int, name: str) -> int:
 
     ``bool`` is a subclass of ``int``, so without this ``curve(True)`` would quietly mean
     ``curve(1)``; and ``3.0`` would index as ``3`` while ``3.5`` silently truncated.
+
+    Parameters
+    ----------
+    value : object
+        Value to validate as a non-boolean integer.
+    name : str
+        Parameter label for validation, or curve label for lookup.
+
+    Returns
+    -------
+    int
+        Validated Python integer with boolean values rejected.
     """
     if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
         raise TypeError(f"{name} must be an int, got {type(value).__name__}")
@@ -73,6 +85,16 @@ def _check_index_order(order: int) -> int:
 
     Unlike :func:`hilbertplot._core.generation.check_order` there is no memory ceiling
     here -- :meth:`Curve.encode` at order 200 is perfectly reasonable.
+
+    Parameters
+    ----------
+    order : int or None
+        Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+
+    Returns
+    -------
+    int
+        Nonnegative recursion depth without a materialized-cell check.
     """
     order = _check_int(order, "order")
     if order < 0:
@@ -117,6 +139,18 @@ class Curve:
     __slots__ = ("_spec",)
 
     def __init__(self, spec: CurveSpec) -> None:
+        """Bind an internal curve to an immutable catalog specification.
+
+        Parameters
+        ----------
+        spec : CurveSpec
+            Catalog identity, quadrant rules and geometric classification.
+
+        Raises
+        ------
+        TypeError
+            The input is not an internal CurveSpec.
+        """
         if not isinstance(spec, CurveSpec):
             raise TypeError(
                 f"Curve() takes a CurveSpec, got {type(spec).__name__}; "
@@ -127,37 +161,82 @@ class Curve:
     # -- identity ------------------------------------------------------------
     @property
     def index(self) -> int:
-        """int: The curve number in ``0``..``39``."""
+        """The curve number in ``0``..``39``.
+
+        Returns
+        -------
+        int
+            The curve number in ``0``..``39``.
+        """
         return self._spec.index
 
     @property
     def name(self) -> str:
-        """str: Human-readable name (``"Hilbert"``, ``"Moore"``, ``"Liu2+Liu4 #1"``, ...)."""
+        """Human-readable name (``"Hilbert"``, ``"Moore"``, ``"Liu2+Liu4 #1"``, ...).
+
+        Returns
+        -------
+        str
+            Human-readable name (``"Hilbert"``, ``"Moore"``, ``"Liu2+Liu4 #1"``, ...).
+        """
         return self._spec.name
 
     @property
     def symbol(self) -> str:
-        """str: The paper's ``{}_nu H`` symbol as ``"<index>H"`` (e.g. ``"0H"``)."""
+        """The paper's ``{}_nu H`` symbol as ``"<index>H"`` (e.g. ``"0H"``).
+
+        Returns
+        -------
+        str
+            The paper's ``{}_nu H`` symbol as ``"<index>H"`` (e.g. ``"0H"``).
+        """
         return f"{self._spec.index}H"
 
     @property
     def kind(self) -> str:
-        """str: One of ``"proper"``, ``"improper"`` or ``"inhomogeneous"``."""
+        """One of ``"proper"``, ``"improper"`` or ``"inhomogeneous"``.
+
+        Returns
+        -------
+        str
+            One of ``"proper"``, ``"improper"`` or ``"inhomogeneous"``.
+        """
         return _KIND[self._spec.family]
 
     @property
     def is_homogeneous(self) -> bool:
-        """bool: ``True`` for the twelve homogeneous curves (a single kernel type)."""
+        """``True`` for the twelve homogeneous curves (a single kernel type).
+
+        Returns
+        -------
+        bool
+            ``True`` for the twelve homogeneous curves (a single kernel type).
+        """
         return self._spec.is_homogeneous
 
     @property
     def is_closed(self) -> bool:
-        """bool: ``True`` if the curve closes into a loop (Moore, Liu1, Improper1, Improper4)."""
+        """``True`` if the curve closes into a loop (Moore, Liu1, Improper1, Improper4).
+
+        Returns
+        -------
+        bool
+            ``True`` if the curve closes into a loop (Moore, Liu1, Improper1, Improper4).
+        """
         return self._spec.closed
 
     @property
     def generalizes(self) -> bool:
-        """bool: ``True`` if the curve tiles an arbitrary ``n x n`` square (see :meth:`grid`).
+        """``True`` if the curve tiles an arbitrary ``n x n`` square (see :meth:`grid`).
+
+        Only eight of the forty curves do (proved in ``research/quasisquares/``); the rest
+        exist only on ``2**k`` grids. Use :func:`hilbertplot.curves.generalizing`
+        for the whole group.
+
+        Returns
+        -------
+        bool
+            ``True`` if the curve tiles an arbitrary ``n x n`` square (see :meth:`grid`).
 
         Only eight of the forty curves do (proved in ``research/quasisquares/``); the rest
         exist only on ``2**k`` grids. Use :func:`hilbertplot.curves.generalizing`
@@ -169,17 +248,35 @@ class Curve:
 
     @property
     def kernels(self) -> frozenset[int]:
-        """frozenset[int]: Indices of the building-block curves used in the four quadrants."""
+        """Indices of the building-block curves used in the four quadrants.
+
+        Returns
+        -------
+        frozenset[int]
+            Indices of the building-block curves used in the four quadrants.
+        """
         return self._spec.kernels
 
     @property
     def combination(self) -> str:
-        """str: Kernel mix in paper symbols, e.g. ``"0H"``, ``"5H"``, ``"3H+5H"``."""
+        """Kernel mix in paper symbols, e.g. ``"0H"``, ``"5H"``, ``"3H+5H"``.
+
+        Returns
+        -------
+        str
+            Kernel mix in paper symbols, e.g. ``"0H"``, ``"5H"``, ``"3H+5H"``.
+        """
         return self._spec.combination
 
     @property
     def rule(self) -> str:
-        """str: The construction rule in the paper's tag-system notation."""
+        """The construction rule in the paper's tag-system notation.
+
+        Returns
+        -------
+        str
+            The construction rule in the paper's tag-system notation.
+        """
         return self._spec.rule_str()
 
     # -- construction --------------------------------------------------------
@@ -597,9 +694,11 @@ class Curve:
 
     # -- dunders -------------------------------------------------------------
     def __eq__(self, other: object) -> bool:
+        """Compare internal curves by catalog index, returning NotImplemented for other types."""
         return isinstance(other, Curve) and other._spec.index == self._spec.index
 
     def __hash__(self) -> int:
+        """Hash the immutable catalog identity of this curve."""
         return hash(self._spec.index)
 
     def __lt__(self, other: object) -> bool:
@@ -609,16 +708,19 @@ class Curve:
         return self._spec.index < other._spec.index
 
     def __le__(self, other: object) -> bool:
+        """Compare catalog indices using less-than-or-equal ordering."""
         if not isinstance(other, Curve):
             return NotImplemented
         return self._spec.index <= other._spec.index
 
     def __gt__(self, other: object) -> bool:
+        """Compare catalog indices using greater-than ordering."""
         if not isinstance(other, Curve):
             return NotImplemented
         return self._spec.index > other._spec.index
 
     def __ge__(self, other: object) -> bool:
+        """Compare catalog indices using greater-than-or-equal ordering."""
         if not isinstance(other, Curve):
             return NotImplemented
         return self._spec.index >= other._spec.index
@@ -628,16 +730,23 @@ class Curve:
         return self._spec.index
 
     def __repr__(self) -> str:
+        """Return a concise representation for debugging internal objects."""
         return f"<Curve {self.symbol} {self._spec.name} ({self.kind})>"
 
     def __str__(self) -> str:
+        """Return the human-readable construction label."""
         return self._spec.name
 
     def _repr_png_(self) -> bytes | None:
         """Render inline in Jupyter, so ``hilbertplot.curves.info(0)`` in a cell shows the curve.
 
         Returns ``None`` when matplotlib is not installed, which makes the notebook fall
-        back to :meth:`__repr__` instead of raising -- matplotlib is an optional extra.
+        back to :meth:`__repr__` if the plotting dependency is damaged.
+
+        Returns
+        -------
+        bytes
+            PNG rendering used by rich notebook display of internal objects.
         """
         try:
             from .._viz.render import figure_png
@@ -676,47 +785,95 @@ class CurveList(list):
 
     # -- keep the type through the usual list operations ---------------------
     def __getitem__(self, item):
+        """Return an indexed curve or a CurveList-preserving slice."""
         result = list.__getitem__(self, item)
         return CurveList(result) if isinstance(item, slice) else result
 
     def __add__(self, other):
+        """Concatenate selections while retaining the internal CurveList type."""
         return CurveList(list.__add__(self, other))
 
     def __mul__(self, count):
+        """Repeat a curve selection while retaining the internal CurveList type."""
         return CurveList(list.__mul__(self, count))
 
     __rmul__ = __mul__
 
     def copy(self) -> CurveList:
+        """Return a shallow copy of this internal curve selection.
+
+        Returns
+        -------
+        CurveList
+            Shallow copy retaining this internal selection type.
+        """
         return CurveList(self)
 
     # -- convenience ---------------------------------------------------------
     @property
     def indices(self) -> list[int]:
-        """list[int]: The index of every curve in this list."""
+        """The index of every curve in this list.
+
+        Returns
+        -------
+        list[int]
+            The index of every curve in this list.
+        """
         return [c.index for c in self]
 
     @property
     def names(self) -> list[str]:
-        """list[str]: The name of every curve in this list."""
+        """The name of every curve in this list.
+
+        Returns
+        -------
+        list[str]
+            The name of every curve in this list.
+        """
         return [c.name for c in self]
 
     def closed(self) -> CurveList:
-        """Return just the curves in this list that close into a loop."""
+        """Return just the curves in this list that close into a loop.
+
+        Returns
+        -------
+        CurveList
+            Selected curves classified as closed in the catalog.
+        """
         return CurveList(c for c in self if c.is_closed)
 
     def generalizing(self) -> CurveList:
-        """Return just the curves in this list that tile arbitrary ``n x n`` squares."""
+        """Return just the curves in this list that tile arbitrary ``n x n`` squares.
+
+        Returns
+        -------
+        CurveList
+            Selected curves supporting arbitrary squares and quasisquares.
+        """
         return CurveList(c for c in self if c.generalizes)
 
     def gallery(self, order: int = 3, **kwargs):
-        """Draw this list as a grid of panels -- see :func:`hilbertplot.gallery`."""
+        """Draw this list as a grid of panels -- see :func:`hilbertplot.gallery`.
+
+        Parameters
+        ----------
+        order : int or None
+            Recursion depth for a side of 2**order; None requests automatic sizing when supported.
+        **kwargs : dict
+            Drawing options forwarded to the internal renderer.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            Figure containing drawings of this selection.
+        """
         from .._viz.render import gallery
 
         return gallery(self, order=order, **kwargs)
 
     # -- presentation --------------------------------------------------------
     def __repr__(self) -> str:
+        """Return a concise representation for debugging internal objects."""
         if not self:
             return "CurveList([])"
         header = ("#", "name", "kind", "closed")
@@ -738,7 +895,18 @@ _CATALOG: tuple[Curve, ...] = tuple(Curve(spec) for spec in SPECS)
 
 
 def _norm(name: str) -> str:
-    """Normalise a name/symbol for tolerant lookup (drop case, spaces and ``#``)."""
+    """Normalise a name/symbol for tolerant lookup (drop case, spaces and ``#``).
+
+    Parameters
+    ----------
+    name : str
+        Parameter label for validation, or curve label for lookup.
+
+    Returns
+    -------
+    str
+        Case-folded label without whitespace or hash marks.
+    """
     return name.lower().replace(" ", "").replace("#", "")
 
 
@@ -750,7 +918,20 @@ for _c in _CATALOG:
 
 
 def _suggest(name: str, limit: int = 3) -> list[str]:
-    """Return the closest real curve names to a misspelling, or an empty list if none are."""
+    """Return the closest real curve names to a misspelling, or an empty list if none are.
+
+    Parameters
+    ----------
+    name : str
+        Parameter label for validation, or curve label for lookup.
+    limit : int
+        Maximum number of spelling suggestions to return.
+
+    Returns
+    -------
+    list of str
+        At most limit close catalog labels; empty when no match is close enough.
+    """
     from difflib import get_close_matches
 
     candidates = {c.name for c in _CATALOG} | {c.symbol for c in _CATALOG}

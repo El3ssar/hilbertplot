@@ -87,24 +87,58 @@ class Symmetry:
 
     # -- action on geometry -------------------------------------------------
     def apply_vector(self, vector: tuple[int, int]) -> tuple[int, int]:
-        """Return ``self`` applied to an integer ``(x, y)`` vector."""
+        """Return ``self`` applied to an integer ``(x, y)`` vector.
+
+        Parameters
+        ----------
+        vector : tuple of int
+            Integer (x, y) vector to transform.
+
+        Returns
+        -------
+        tuple of int
+            Transformed (x, y) vector.
+        """
         (a, b), (c, d) = self.matrix
         x, y = vector
         return (a * x + b * y, c * x + d * y)
 
     def apply_letter(self, letter: Direction) -> Direction:
-        """Return the direction letter obtained by transforming ``letter``."""
+        """Return the direction letter obtained by transforming ``letter``.
+
+        Parameters
+        ----------
+        letter : str
+            One direction letter from u, d, l or r.
+
+        Returns
+        -------
+        str
+            The transformed unit direction letter.
+        """
         return self._letter_map[letter]
 
     @cached_property
     def _letter_map(self) -> Mapping[str, str]:
+        """Return the cached mapping from each direction letter to its transformed letter."""
         return {
             letter: _VECTOR_TO_LETTER[self.apply_vector(DIRECTION_VECTORS[letter])]
             for letter in DIRECTIONS
         }
 
     def apply_word(self, word: str) -> str:
-        """Rewrite every letter of ``word`` under this symmetry (a morphism)."""
+        """Rewrite every letter of ``word`` under this symmetry (a morphism).
+
+        Parameters
+        ----------
+        word : str
+            Unit direction word over u, d, l and r.
+
+        Returns
+        -------
+        str
+            Transformed direction word of unchanged length.
+        """
         table = self._letter_map
         return "".join(table[letter] for letter in word)
 
@@ -113,6 +147,16 @@ class Symmetry:
         """Return the symmetry ``self`` followed by ``other`` (``other after self``).
 
         ``s.compose(t).apply_vector(v) == t.apply_vector(s.apply_vector(v))``.
+
+        Parameters
+        ----------
+        other : object
+            Object compared or combined with this internal instance.
+
+        Returns
+        -------
+        Symmetry
+            Composition applying self first, then other.
         """
         (a, b), (c, d) = other.matrix
         (e, f), (g, h) = self.matrix
@@ -124,9 +168,11 @@ class Symmetry:
         )
 
     def __matmul__(self, other: Symmetry) -> Symmetry:
+        """Compose symmetries with the same ordering as compose."""
         return self.compose(other)
 
     def __repr__(self) -> str:  # pragma: no cover - cosmetic
+        """Return a concise representation for debugging internal objects."""
         return f"Symmetry({self.name or self.matrix})"
 
 
@@ -159,7 +205,20 @@ MORPHISMS: Mapping[str, Symmetry] = {
 
 
 def apply_morphism(code: str, word: str) -> str:
-    """Apply the morphism named ``code`` (one of :data:`MORPHISMS`) to ``word``."""
+    """Apply the morphism named ``code`` (one of :data:`MORPHISMS`) to ``word``.
+
+    Parameters
+    ----------
+    code : str
+        Single-letter morphism code identifying a square symmetry.
+    word : str
+        Unit direction word over u, d, l and r.
+
+    Returns
+    -------
+    str
+        Direction word rewritten by the selected symmetry.
+    """
     return MORPHISMS[code].apply_word(word)
 
 
@@ -173,6 +232,16 @@ def reverse_word(word: str) -> str:
 
     >>> reverse_word("ruluurdrurddldr")
     'luruuldlulddrdl'
+
+    Parameters
+    ----------
+    word : str
+        Unit direction word over u, d, l and r.
+
+    Returns
+    -------
+    str
+        Direction word that traverses the original path backwards.
     """
     flip = ROT180._letter_map
     return "".join(flip[letter] for letter in reversed(word))

@@ -131,7 +131,20 @@ _BLOCK_CELLS = 4096
 
 
 def _compose(left: Matrix, right: Matrix) -> Matrix:
-    """Return the matrix product ``left @ right``."""
+    """Return the matrix product ``left @ right``.
+
+    Parameters
+    ----------
+    left : tuple of tuple of int
+        Left matrix factor.
+    right : tuple of tuple of int
+        Right matrix factor.
+
+    Returns
+    -------
+    tuple of tuple of int
+        Product of the two orientation matrices.
+    """
     (a, b), (c, d) = left
     (e, f), (g, h) = right
     return ((a * e + b * g, a * f + b * h), (c * e + d * g, c * f + d * h))
@@ -142,6 +155,20 @@ def _canonical_extent(matrix: Matrix, width: int, height: int) -> tuple[int, int
 
     ``matrix`` is a signed permutation; when it swaps the axes (its top-left entry is
     zero) the canonical width is the region's height and vice versa.
+
+    Parameters
+    ----------
+    matrix : tuple of tuple of int
+        Two-by-two integer orientation matrix.
+    width : int
+        Region width in cells.
+    height : int
+        Region height in cells.
+
+    Returns
+    -------
+    tuple of int
+        Width and height measured in the canonical construction frame.
     """
     return (height, width) if matrix[0][0] == 0 else (width, height)
 
@@ -156,6 +183,24 @@ def _canonical_origin(
     permutation, the minimum of ``a*cx + b*cy`` over the box is reached at the extreme
     of whichever coordinate has a negative coefficient; subtracting that minimum puts
     the image's lower-left corner back on ``(x0, y0)``.
+
+    Parameters
+    ----------
+    matrix : tuple of tuple of int
+        Two-by-two integer orientation matrix.
+    x0 : int
+        Absolute horizontal origin of this region.
+    y0 : int
+        Absolute vertical origin of this region.
+    canonical_width : int
+        Region width measured in the construction frame.
+    canonical_height : int
+        Region height measured in the construction frame.
+
+    Returns
+    -------
+    tuple of int
+        Absolute (x, y) coordinates of the canonical frame origin.
     """
     (a, b), (c, d) = matrix
     dx = (a * (canonical_width - 1) if a < 0 else 0) + (b * (canonical_height - 1) if b < 0 else 0)
@@ -171,6 +216,18 @@ def _split(length: int, rule: str) -> tuple[int, int]:
     ``rule="second"`` makes the *high* half even, swapping them when needed; forcing that
     parity is what keeps the path connected.  When ``length`` is even both halves already
     share a parity, so the swap cannot change anything and the rule has no effect.
+
+    Parameters
+    ----------
+    length : int or None
+        Requested number of flattened output values; None retains all values.
+    rule : str
+        Split rule choosing which half receives an odd extra cell.
+
+    Returns
+    -------
+    tuple of int
+        The two nonnegative half lengths.
     """
     low = length // 2
     high = length - low
@@ -187,6 +244,22 @@ def _child_regions(
     Each entry is ``(kernel index, child matrix, child reversal, dx, dy, width, height)``
     where ``dx, dy`` is the child's offset relative to this region's own minimum corner,
     so a caller adds its own absolute origin.
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+    matrix : tuple of tuple of int
+        Two-by-two integer orientation matrix.
+    width : int
+        Region width in cells.
+    height : int
+        Region height in cells.
+
+    Returns
+    -------
+    tuple
+        Child region descriptions in traversal quadrant order.
     """
     (a, b), (c, d) = matrix
     canonical_width, canonical_height = _canonical_extent(matrix, width, height)
@@ -247,6 +320,26 @@ def _block(
 
     Memoised on the region's *shape* -- absolute position never enters, since it is a
     pure translation the caller adds.  The returned array is read-only and shared.
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+    width : int
+        Region width in cells.
+    height : int
+        Region height in cells.
+    matrix : tuple of tuple of int
+        Two-by-two integer orientation matrix.
+    reverse : bool
+        Whether to traverse the construction in the opposite order.
+    memo : dict
+        Per-construction cache of small oriented path blocks.
+
+    Returns
+    -------
+    numpy.ndarray
+        Shape (width * height, 2) containing region-relative cells.
     """
     key = (index, width, height, matrix, reverse)
     cached = memo.get(key)
@@ -294,6 +387,34 @@ def _emit(
 
     Recurses in Python only while the region is larger than :data:`_BLOCK_CELLS`; below
     that it translates a memoised block straight into the output slice.
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+    x0 : int
+        Absolute horizontal origin of this region.
+    y0 : int
+        Absolute vertical origin of this region.
+    width : int
+        Region width in cells.
+    height : int
+        Region height in cells.
+    matrix : tuple of tuple of int
+        Two-by-two integer orientation matrix.
+    reverse : bool
+        Whether to traverse the construction in the opposite order.
+    out : numpy.ndarray
+        Preallocated coordinate array written in traversal order.
+    cursor : list of int
+        Single mutable write position advanced as cells are emitted.
+    memo : dict
+        Per-construction cache of small oriented path blocks.
+
+    Returns
+    -------
+    None
+        Cells are written to out and cursor is advanced in place.
     """
     if width * height <= _BLOCK_CELLS:
         block = _block(index, width, height, matrix, reverse, memo)
@@ -324,6 +445,18 @@ def square_points(index: int, n: int) -> np.ndarray:
     """Return the ``(n*n, 2)`` cell path of feasible curve ``index`` on an ``n x n`` grid.
 
     The caller is responsible for checking ``index in FEASIBLE`` and ``n >= 1``.
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+    n : int
+        Number of samples, or square side in path construction as described above.
+
+    Returns
+    -------
+    numpy.ndarray of int64
+        Shape (n * n, 2) containing a connected square path.
     """
     if n == 1:
         return np.zeros((1, 2), dtype=np.int64)
@@ -333,7 +466,18 @@ def square_points(index: int, n: int) -> np.ndarray:
 
 
 def check_shape(shape) -> tuple[int, int]:
-    """Validate an explicit (rows, columns) square or quasisquare shape."""
+    """Validate an explicit (rows, columns) square or quasisquare shape.
+
+    Parameters
+    ----------
+    shape : tuple of int or None
+        Requested spatial shape; trailing dimensions describe pixel components when supported.
+
+    Returns
+    -------
+    tuple of int
+        Validated positive row and column dimensions.
+    """
     if not isinstance(shape, (tuple, list)) or len(shape) != 2:
         raise TypeError("shape must be a (rows, columns) pair of positive integers")
     if any(isinstance(n, bool) or not isinstance(n, (int, np.integer)) for n in shape):
@@ -354,6 +498,18 @@ def shape_points(index: int, shape) -> np.ndarray:
     on its dimensions and curve: try D4 orientations in fixed order and retain the
     first connected path. Recursive partitioning already covers every cell once;
     the additional check verifies every junction between successive cells.
+
+    Parameters
+    ----------
+    index : int
+        Curve catalog index in 0..39.
+    shape : tuple of int or None
+        Requested spatial shape; trailing dimensions describe pixel components when supported.
+
+    Returns
+    -------
+    numpy.ndarray of int64
+        Shape (rows * columns, 2) containing a connected supported path.
     """
     from .generation import curve_codes
     from .geometry import codes_to_points

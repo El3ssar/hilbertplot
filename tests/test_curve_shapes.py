@@ -34,7 +34,6 @@ def test_shape_squares_agree_with_both_existing_constructions():
 @pytest.mark.parametrize("index", FEASIBLE)
 @pytest.mark.parametrize("shape", [(15, 15), (15, 16), (16, 15)])
 def test_line_rendering_follows_the_exact_path(index, shape):
-    pytest.importorskip("matplotlib")
     pts = hp.curves.grid(shape, curve=index)
     fig = hp.plot_curve(index, shape=shape, mode="line", color="steelblue")
     ax = fig.axes[0]
@@ -45,7 +44,6 @@ def test_line_rendering_follows_the_exact_path(index, shape):
 
 
 def test_gradient_line_and_filled_quasisquare_rendering():
-    pytest.importorskip("matplotlib")
     fig = hp.plot_curve("Liu2", shape=(15, 16), mode="line")
     ax = fig.axes[0]
     assert ax.collections
@@ -57,7 +55,6 @@ def test_gradient_line_and_filled_quasisquare_rendering():
 
 
 def test_invalid_or_unsupported_shapes_fail_before_creating_a_figure():
-    pytest.importorskip("matplotlib")
     import matplotlib.pyplot as plt
 
     before = plt.get_fignums()
