@@ -27,7 +27,7 @@ all custom curve and plot classes are implementation details.
 from . import config, curves, data
 from ._api import gallery, plot, plot_curve
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 
 __all__ = ["__version__", "config", "curves", "data", "gallery", "plot", "plot_curve"]
 

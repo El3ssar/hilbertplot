@@ -63,6 +63,21 @@ validates `fit` instead of ignoring it.
 
 <!-- version list -->
 
+## v1.0.0 (2026-11-01)
+
+### Features
+
+- Simplify plotting and add lossless curve conversions
+  ([`f45f2a6`](https://github.com/El3ssar/hilbertplot/commit/f45f2a6219bfc1f6259d72a64d01c8b19ae7d28e))
+
+### Breaking Changes
+
+- Replace public curve/plot objects and top-level numerical helpers with function-based plotting and
+  namespaced to_grid/from_grid/index_to_xy/xy_to_index operations. Data plots default to
+  power-of-two padding; difference=True renders the full locality-loss field. General rectangles are
+  intentionally unsupported.
+
+
 ## v0.2.0 (2026-07-25)
 
 ### Bug Fixes
