@@ -47,7 +47,7 @@ jobs:
       - name: Check rendered links, assets and favicon geometry
         run: uv run --no-sync python scripts/check_docs.py --html
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs/_build/html
 
